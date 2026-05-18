@@ -1,9 +1,7 @@
 """CLIP evaluator using open_clip_torch for semantic similarity."""
 
 from typing import Optional, Tuple
-from io import BytesIO
 import asyncio
-import httpx
 
 from PIL import Image
 import torch
@@ -11,6 +9,7 @@ import open_clip
 
 from src.config import settings
 from src.utils.logger import logger
+from src.services.image_loader import image_loader
 
 
 class CLIPEvaluator:
@@ -29,14 +28,17 @@ class CLIPEvaluator:
 
         try:
             self._device = settings.clip_device if torch.cuda.is_available() else "cpu"
-            logger.info(f"Loading CLIP model: {settings.clip_model_name} on {self._device}")
+            
+            # 确定预训练模型路径
+            pretrained_path = settings.clip_model_path if settings.clip_model_path else "openai"
+            logger.info(f"Loading CLIP model: {settings.clip_model_name} on {self._device}, pretrained: {pretrained_path}")
             
             model, _, preprocess = await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: open_clip.create_model_and_transforms(
                     settings.clip_model_name,
                     device=self._device,
-                    pretrained="openai"
+                    pretrained=pretrained_path
                 )
             )
             
@@ -65,7 +67,7 @@ class CLIPEvaluator:
             await self.initialize()
 
         try:
-            image = await self._load_image(image_source)
+            image = await image_loader.load(image_source)
             
             def _compute_score():
                 image_tensor = self._preprocess(image).unsqueeze(0).to(self._device)
@@ -93,18 +95,6 @@ class CLIPEvaluator:
         except Exception as e:
             logger.error(f"CLIP evaluation failed: {e}")
             raise
-
-    async def _load_image(self, image_source: str) -> Image.Image:
-        """Load image from URL or base64."""
-        if image_source.startswith("http://") or image_source.startswith("https://"):
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(image_source)
-                response.raise_for_status()
-                return Image.open(BytesIO(response.content)).convert("RGB")
-        else:
-            import base64
-            image_data = base64.b64decode(image_source)
-            return Image.open(BytesIO(image_data)).convert("RGB")
 
     def _interpret_score(self, score: float) -> str:
         """Interpret CLIP score."""

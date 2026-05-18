@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     # ComfyUI
     comfyui_url: str = "http://localhost:8188"
+    comfyui_output_dir: str = "/Users/wangchangbin/ComfyUI/output"
+    comfyui_workflow_dir: str = "workflows"  # 本地工作流 JSON 文件目录
     comfyui_timeout: int = 300
 
     # LLM
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
 
     # CLIP
     clip_model_name: str = "apple/DFN2B-CLIP-ViT-L-14-39B"
+    clip_model_path: Optional[str] = None  # 本地模型路径，如 ~/.cache/huggingface/hub/open_clip_pytorch_model.bin
     clip_device: str = "cuda"
 
     # Logging

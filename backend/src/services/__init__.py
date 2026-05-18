@@ -9,6 +9,7 @@ from src.services.clip_evaluator import clip_evaluator
 from src.services.comfyui_client import comfyui_client
 from src.services.llm_evaluator import llm_evaluator
 from src.services.evaluation_pipeline import evaluation_pipeline
+from src.services.image_loader import image_loader
 
 __all__ = [
     "ws_manager",
@@ -22,4 +23,5 @@ __all__ = [
     "comfyui_client",
     "llm_evaluator",
     "evaluation_pipeline",
+    "image_loader",
 ]
