@@ -9,6 +9,9 @@ from src.config import settings
 from src.db.database import init_db, close_db
 from src.utils.logger import setup_logging, logger
 from src.utils.exceptions import AppException
+from src.routers import tasks, projects, websocket, health
+from src.services.task_queue import task_queue
+from src.services.evaluation_pipeline import evaluation_pipeline
 
 
 @asynccontextmanager
@@ -17,8 +20,14 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Agent图像评估系统...")
     await init_db()
     logger.info("Database initialized")
+    
+    await task_queue.start(evaluation_pipeline.process_job)
+    logger.info("Task queue started")
+    
     yield
+    
     logger.info("Shutting down...")
+    await task_queue.stop()
     await close_db()
     logger.info("Database connections closed")
 
@@ -37,6 +46,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(tasks.router, prefix=settings.api_v1_prefix)
+app.include_router(projects.router, prefix=settings.api_v1_prefix)
+app.include_router(websocket.router)
+app.include_router(health.router)
 
 
 @app.exception_handler(AppException)

@@ -65,18 +65,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T021 [P] [US1] Create task creation endpoint POST /api/v1/tasks in `backend/src/routers/tasks.py`
-- [ ] T022 [P] [US1] Implement Project model and CRUD operations in `backend/src/services/project_service.py`
-- [ ] T023 [P] [US1] Implement task repository for database operations in `backend/src/services/task_repository.py`
-- [ ] T024 [US1] Create async task queue with asyncio.Queue in `backend/src/services/task_queue.py`
-- [ ] T025 [US1] Implement task manager for task lifecycle in `backend/src/services/task_manager.py`
-- [ ] T026 [US1] Add task creation validation (image or base64 required, prompt required)
-- [ ] T027 [US1] Integrate WebSocket manager for task status updates
+- [x] T021 [P] [US1] Create task creation endpoint POST /api/v1/tasks in `backend/src/routers/tasks.py`
+- [x] T022 [P] [US1] Implement Project model and CRUD operations in `backend/src/services/project_service.py`
+- [x] T023 [P] [US1] Implement task repository for database operations in `backend/src/services/task_repository.py`
+- [x] T024 [US1] Create async task queue with asyncio.Queue in `backend/src/services/task_queue.py`
+- [x] T025 [US1] Implement task manager for task lifecycle in `backend/src/services/task_manager.py`
+- [x] T026 [US1] Add task creation validation (image or base64 required, prompt required)
+- [x] T027 [US1] Integrate WebSocket manager for task status updates
 
 ### Testing for User Story 1
 
-- [ ] T028 [US1] Add unit tests for task creation in `backend/tests/unit/test_tasks.py`
-- [ ] T029 [US1] Verify API returns task_id within 5 seconds (SC-001)
+- [x] T028 [US1] Add unit tests for task creation in `backend/tests/unit/test_tasks.py`
+- [x] T029 [US1] Verify API returns task_id within 5 seconds (SC-001)
 
 **Checkpoint**: User Story 1 should be fully functional - tasks can be submitted and tracked
 
@@ -90,19 +90,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T030 [P] [US2] Implement CLIP evaluator with open_clip_torch in `backend/src/services/clip_evaluator.py`
-- [ ] T031 [P] [US2] Implement ComfyUI client for Qwen VL workflow in `backend/src/services/comfyui_client.py`
-- [ ] T032 [P] [US2] Implement LLM evaluator with LangChain in `backend/src/services/llm_evaluator.py`
-- [ ] T033 [US2] Create evaluation pipeline orchestrator in `backend/src/services/evaluation_pipeline.py`
-- [ ] T034 [US2] Implement WebSocket endpoint /ws/{task_id} in `backend/src/routers/websocket.py`
-- [ ] T035 [US2] Add progress tracking with phases (clip_evaluation, llm_evaluation)
-- [ ] T036 [US2] Add result and error message broadcasting
+- [x] T030 [P] [US2] Implement CLIP evaluator with open_clip_torch in `backend/src/services/clip_evaluator.py`
+- [x] T031 [P] [US2] Implement ComfyUI client for Qwen VL workflow in `backend/src/services/comfyui_client.py`
+- [x] T032 [P] [US2] Implement LLM evaluator with LangChain in `backend/src/services/llm_evaluator.py`
+- [x] T033 [US2] Create evaluation pipeline orchestrator in `backend/src/services/evaluation_pipeline.py`
+- [x] T034 [US2] Implement WebSocket endpoint /ws/{task_id} in `backend/src/routers/websocket.py`
+- [x] T035 [US2] Add progress tracking with phases (clip_evaluation, llm_evaluation)
+- [x] T036 [US2] Add result and error message broadcasting
 
 ### Testing for User Story 2
 
-- [ ] T037 [US2] Add WebSocket integration tests in `backend/tests/integration/test_websocket.py`
-- [ ] T038 [US2] Verify WebSocket push latency < 1 second (SC-005)
-- [ ] T039 [US2] Add evaluator unit tests in `backend/tests/unit/test_evaluators.py`
+- [x] T037 [US2] Add WebSocket integration tests in `backend/tests/integration/test_websocket.py`
+- [x] T038 [US2] Verify WebSocket push latency < 1 second (SC-005)
+- [x] T039 [US2] Add evaluator unit tests in `backend/tests/unit/test_evaluators.py`
 
 **Checkpoint**: User Story 2 should be fully functional - real-time progress tracking works
 
@@ -116,21 +116,21 @@
 
 ### Backend for User Story 3
 
-- [ ] T040 [P] [US3] Implement GET /api/v1/tasks endpoint with pagination and filtering in `backend/src/routers/tasks.py`
-- [ ] T041 [P] [US3] Implement GET /api/v1/projects endpoint with pagination in `backend/src/routers/projects.py`
-- [ ] T042 [US3] Add date range and score filtering to task query
+- [x] T040 [P] [US3] Implement GET /api/v1/tasks endpoint with pagination and filtering in `backend/src/routers/tasks.py`
+- [x] T041 [P] [US3] Implement GET /api/v1/projects endpoint with pagination in `backend/src/routers/projects.py`
+- [x] T042 [US3] Add date range and score filtering to task query
 
 ### Frontend for User Story 3
 
-- [ ] T043 [P] [US3] Create ProjectListPage component in `frontend/src/pages/ProjectListPage.tsx`
-- [ ] T044 [P] [US3] Create HistoryListPage component with pagination in `frontend/src/pages/HistoryListPage.tsx`
-- [ ] T045 [P] [US3] Create TaskTable component with status badges in `frontend/src/components/TaskTable.tsx`
-- [ ] T046 [US3] Add filtering controls (date range, status, project) in `frontend/src/components/TaskFilters.tsx`
+- [x] T043 [P] [US3] Create ProjectListPage component in `frontend/src/pages/ProjectListPage.tsx`
+- [x] T044 [P] [US3] Create HistoryListPage component with pagination in `frontend/src/pages/HistoryListPage.tsx`
+- [x] T045 [P] [US3] Create TaskTable component with status badges in `frontend/src/components/TaskTable.tsx`
+- [x] T046 [US3] Add filtering controls (date range, status, project) in `frontend/src/components/TaskFilters.tsx`
 
 ### Testing for User Story 3
 
 - [ ] T047 [US3] Add E2E tests for history list in `frontend/cypress/e2e/history.cy.ts`
-- [ ] T048 [US3] Verify pagination load latency < 2 seconds (SC-004)
+- [x] T048 [US3] Verify pagination load latency < 2 seconds (SC-004)
 
 **Checkpoint**: User Story 3 should be fully functional - history list with filtering works
 
@@ -144,18 +144,18 @@
 
 ### Backend for User Story 4
 
-- [ ] T049 [P] [US4] Implement GET /api/v1/tasks/{task_id} endpoint in `backend/src/routers/tasks.py`
-- [ ] T050 [P] [US4] Implement GET /api/v1/tasks/{task_id}/result endpoint in `backend/src/routers/tasks.py`
-- [ ] T051 [P] [US4] Implement GET /api/v1/projects/{project_id} endpoint in `backend/src/routers/projects.py`
+- [x] T049 [P] [US4] Implement GET /api/v1/tasks/{task_id} endpoint in `backend/src/routers/tasks.py`
+- [x] T050 [P] [US4] Implement GET /api/v1/tasks/{task_id}/result endpoint in `backend/src/routers/tasks.py`
+- [x] T051 [P] [US4] Implement GET /api/v1/projects/{project_id} endpoint in `backend/src/routers/projects.py`
 
 ### Frontend for User Story 4
 
-- [ ] T052 [P] [US4] Create EvaluationDetailPage component in `frontend/src/pages/EvaluationDetailPage.tsx`
-- [ ] T053 [P] [US4] Create ScoreCard component for displaying scores in `frontend/src/components/ScoreCard.tsx`
-- [ ] T054 [P] [US4] Create ImagePreview component for displaying generated image in `frontend/src/components/ImagePreview.tsx`
-- [ ] T055 [P] [US4] Create AnalysisPanel component for LLM analysis in `frontend/src/components/AnalysisPanel.tsx`
-- [ ] T056 [US4] Add navigation from HistoryListPage to EvaluationDetailPage
-- [ ] T057 [US4] Add real-time WebSocket updates on detail page
+- [x] T052 [P] [US4] Create EvaluationDetailPage component in `frontend/src/pages/EvaluationDetailPage.tsx`
+- [x] T053 [P] [US4] Create ScoreCard component for displaying scores in `frontend/src/components/ScoreCard.tsx`
+- [x] T054 [P] [US4] Create ImagePreview component for displaying generated image in `frontend/src/components/ImagePreview.tsx`
+- [x] T055 [P] [US4] Create AnalysisPanel component for LLM analysis in `frontend/src/components/AnalysisPanel.tsx`
+- [x] T056 [US4] Add navigation from HistoryListPage to EvaluationDetailPage
+- [x] T057 [US4] Add real-time WebSocket updates on detail page
 
 ### Testing for User Story 4
 
@@ -169,11 +169,11 @@
 
 **Goal**: 支持创建和管理项目/批次来分组评估任务
 
-- [ ] T059 [P] Implement POST /api/v1/projects endpoint in `backend/src/routers/projects.py`
-- [ ] T060 [P] Add task count and average score aggregation to project queries
-- [ ] T061 [P] Create ProjectForm component in `frontend/src/components/ProjectForm.tsx`
-- [ ] T062 [US3] Integrate project selection in task submission form
-- [ ] T063 [US3] Add project filter in history list
+- [x] T059 [P] Implement POST /api/v1/projects endpoint in `backend/src/routers/projects.py`
+- [x] T060 [P] Add task count and average score aggregation to project queries
+- [x] T061 [P] Create ProjectForm component in `frontend/src/components/ProjectForm.tsx`
+- [x] T062 [US3] Integrate project selection in task submission form
+- [x] T063 [US3] Add project filter in history list
 
 ---
 
@@ -183,7 +183,7 @@
 
 ### Documentation
 
-- [ ] T064 [P] Update README.md files in `backend/` and `frontend/`
+- [x] T064 [P] Update README.md files in `backend/` and `frontend/`
 - [ ] T065 [P] Add API documentation with examples in `backend/src/routers/`
 
 ### Quality
@@ -201,15 +201,15 @@
 
 ### Testing (Supplementary)
 
-- [ ] T069 [P] Add backend integration tests in `backend/tests/integration/`
-- [ ] T070 [P] Add end-to-end tests with Playwright/Cypress in `frontend/e2e/`
-- [ ] T071 Run quickstart.md validation
+- [ ] T073 [P] Add backend integration tests in `backend/tests/integration/`
+- [ ] T074 [P] Add end-to-end tests with Playwright/Cypress in `frontend/e2e/`
+- [ ] T075 Run quickstart.md validation
 
 ### Operations
 
-- [ ] T073 Add health check endpoint in `backend/src/routers/health.py`
-- [ ] T074 Add metrics collection for monitoring
-- [ ] T075 Setup Docker configuration for deployment (optional, see Assumptions)
+- [x] T076 Add health check endpoint in `backend/src/routers/health.py`
+- [ ] T077 Add metrics collection for monitoring
+- [ ] T078 Setup Docker configuration for deployment (optional, see Assumptions)
 
 ---
 
