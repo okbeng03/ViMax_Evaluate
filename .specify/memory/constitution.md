@@ -1,50 +1,219 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  Sync Impact Report
+  ==================
+  Version Change: 0.1.0 → 1.0.0 (NEW CONSTITUTION)
+  
+  This is the initial constitution for the project, establishing core principles
+  for code quality, testing standards, user experience consistency, and performance
+  requirements.
+  
+  Modified Principles: N/A (initial creation)
+  Added Sections:
+    - I. 代码质量原则 (Code Quality Principles)
+    - II. 测试标准原则 (Testing Standards Principles)
+    - III. 用户体验一致性原则 (UX Consistency Principles)
+    - IV. 性能要求原则 (Performance Requirements Principles)
+    - V. 技术债务管理 (Technical Debt Management)
+    - 技术约束与标准 (Technical Constraints & Standards)
+    - 开发流程与质量门禁 (Development Workflow & Quality Gates)
+    - 治理规则 (Governance Rules)
+  
+  Templates Requiring Updates: ✅ N/A (no prior constitution)
+  Follow-up TODOs: None
+-->
 
-## Core Principles
+# VIMAX_EVALUATE 项目章程
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+本章程定义了项目开发的核心原则，涵盖代码质量、测试标准、用户体验一致性和性能要求。所有技术决策和实施选择必须遵循本章程。
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## 核心原则
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### I. 代码质量原则
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+代码质量是项目可持续发展的基础。所有代码必须满足以下要求：
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+**强制要求：**
+- 所有新增代码必须通过静态代码分析（linter）和格式化检查
+- 代码必须具有清晰的命名规范，变量、函数、类名需自描述其用途
+- 函数长度不得超过50行，单一职责原则（SINGLE RESPONSIBILITY PRINCIPLE）必须严格遵守
+- 所有公共API必须包含文档注释，说明参数、返回值和可能的异常
+- 禁止使用硬编码常量，所有配置值必须通过配置文件或环境变量管理
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**代码审查标准：**
+- 所有代码变更必须经过同行审查（PEER REVIEW）后方可合并
+- 审查者必须验证代码符合本章程的质量标准
+- 复杂业务逻辑必须附有技术说明文档
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+** rationale**：高质量代码降低维护成本，减少bug产生，提高团队协作效率。
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+---
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### II. 测试标准原则
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+测试是确保功能正确性和防止回归的关键手段。
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+**测试覆盖要求：**
+- 核心业务逻辑单元测试覆盖率必须达到80%以上
+- 所有公开API必须有对应的契约测试（CONTRACT TEST）
+- 用户关键路径必须有端到端集成测试（E2E TEST）
+- 边界条件和异常场景必须编写测试用例
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**测试质量标准：**
+- 测试必须具有确定性（FLAKY TEST禁止），相同的测试在相同环境下必须产生一致结果
+- 测试必须是独立的（INDEPENDENT），各测试之间不得有执行顺序依赖
+- 测试必须是快速的，单个单元测试执行时间不得超过100毫秒
+- 测试必须自包含（SELFCONTAINED），不得依赖外部真实服务（使用MOCK/STUB）
+
+**测试驱动开发（TDD）建议：**
+- 对于新功能，建议采用红-绿-重构（RED-GREEN-REFACTOR）循环
+- 测试必须先于实现编写（测试失败状态 → 实现 → 测试通过 → 重构）
+
+** rationale**：充分的测试覆盖确保功能正确性，减少生产环境bug，提高交付信心。
+
+---
+
+### III. 用户体验一致性原则
+
+一致的用户体验是产品专业性的体现。
+
+**界面设计标准：**
+- 所有UI组件必须使用统一的设计系统和组件库
+- 颜色、字体、间距、图标必须严格遵循设计规范
+- 响应式设计必须覆盖所有目标设备和屏幕尺寸
+
+**交互一致性：**
+- 类似功能必须使用相同的交互模式（CONSISTENT PATTERNS）
+- 加载状态、错误状态、空状态必须有统一的设计表达
+- 表单验证错误提示必须格式统一、位置一致
+
+**无障碍访问（ACCESSIBILITY）：**
+- 所有交互元素必须支持键盘导航
+- 图片必须包含有意义的替代文本（ALT TEXT）
+- 颜色对比度必须满足WCAG 2.1 AA级标准
+
+**多语言支持：**
+- 所有用户可见文本必须使用国际化（I18N）框架
+- 日期、时间、数字格式必须根据用户区域设置本地化
+
+** rationale**：一致的用户体验降低用户学习成本，提高满意度和效率。
+
+---
+
+### IV. 性能要求原则
+
+性能直接影响用户体验和系统效率。
+
+**响应时间标准：**
+- 页面首屏加载时间（FCP）不得超过2秒
+- API平均响应时间不得超过200毫秒，P99响应时间不得超过500毫秒
+- 用户操作反馈时间不得超过100毫秒
+
+**资源使用限制：**
+- 前端应用初始加载包大小不得超过500KB（压缩后）
+- 内存使用峰值不得超过设备可用内存的50%
+- CPU占用率在空闲状态下不得超过5%
+
+**可扩展性要求：**
+- 系统必须支持水平扩展（HORIZONTAL SCALING）
+- 数据库查询必须优化，支持至少1000 QPS的读操作
+- 缓存策略必须合理，关键数据缓存命中率不低于80%
+
+**性能监控：**
+- 必须实现性能指标采集（PERFORMANCE METRICS）
+- 关键性能指标必须纳入告警机制
+- 定期进行性能测试和评估
+
+** rationale**：良好的性能确保流畅的用户体验，提升产品竞争力和系统稳定性。
+
+---
+
+### V. 技术债务管理
+
+技术债务影响项目的长期健康度和开发效率。
+
+**债务识别与记录：**
+- 所有已知的技术债务必须在代码注释或债务登记表中记录
+- 每条债务记录必须包含：问题描述、影响评估、建议解决方案
+
+**债务偿还策略：**
+- 每个迭代必须分配至少10%的工作量用于技术债务偿还
+- 重构代码时必须同步偿还相关技术债务
+- 新功能开发过程中发现的技术债务必须立即记录
+
+**债务优先级：**
+- 影响生产稳定性的债务：必须在本周内处理
+- 影响开发效率的债务：必须在当前迭代内处理
+- 降低系统性能的债务：必须在性能优化迭代中处理
+
+** rationale**：主动管理技术债务防止债务累积导致项目失控。
+
+---
+
+## 技术约束与标准
+
+### 编码规范
+
+- **语言版本**：使用项目指定的语言版本，禁止使用已停止维护的版本
+- **依赖管理**：所有外部依赖必须在依赖清单中声明，禁止使用未审核的第三方库
+- **安全标准**：
+  - 禁止在代码中存储敏感信息（密钥、凭据等）
+  - 所有用户输入必须进行验证和消毒（SANTIZATION）
+  - 敏感操作必须记录审计日志
+
+### 技术选型原则
+
+- **优先成熟技术**：选择经过广泛验证的成熟技术栈
+- **最小化依赖**：避免不必要的外部依赖，优先使用标准库
+- **可替代性**：核心组件必须设计为可替换的，避免供应商锁定
+
+---
+
+## 开发流程与质量门禁
+
+### 代码合并流程
+
+1. **开发**：在特性分支中实现功能
+2. **自测**：本地运行所有测试，确保通过
+3. **代码审查**：提交Pull Request，由至少一名审查者审核
+4. **质量检查**：CI/CD流水线自动执行以下检查：
+   - 静态代码分析
+   - 单元测试执行
+   - 集成测试执行
+   - 性能测试（如适用）
+5. **合并**：所有检查通过后方可合并到主分支
+
+### 发布流程
+
+- 所有发布必须通过功能完整的测试套件
+- 生产环境部署必须经过灰度发布验证
+- 重大变更必须附带回滚方案
+
+---
+
+## 治理
+
+### 章程优先级
+
+本章程是项目开发的最高准则，所有其他实践指南必须符合本章程。任何与此章程冲突的决定必须经过正式审批并记录。
+
+### 章程修订
+
+- **Minor修订**（新原则添加或实质性扩展指导）：需要至少一名核心维护者批准
+- **Patch修订**（澄清、措辞修正）：需要文档记录，无需正式审批
+- **Major修订**（向后不兼容的原则移除或重新定义）：需要多数核心维护者批准并提供迁移方案
+
+### 遵循验证
+
+- 所有Pull Request必须验证符合本章程
+- 复杂性增加必须有明确的技术理由和更简单的替代方案评估
+- 使用`.specify`目录下的模板文件进行标准化开发
+
+### 版本管理
+
+- 本章程遵循语义化版本（SEMANTIC VERSIONING）
+- 版本号格式：MAJOR.MINOR.PATCH
+- 每次修订必须更新版本号和最后修订日期
+
+---
+
+**Version**: 1.0.0 | **Ratified**: 2026-05-18 | **Last Amended**: 2026-05-18
