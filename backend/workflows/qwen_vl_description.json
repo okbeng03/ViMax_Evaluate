@@ -1,0 +1,27 @@
+{
+  "name": "Qwen VL Image Description",
+  "description": "使用 Qwen VL 生成图片的结构化描述",
+  "version": "1.0",
+  "nodes": {
+    "upload_image": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "{{IMAGE_DATA}}"
+      }
+    },
+    "qwen_vl": {
+      "class_type": "QwenVLPrompt",
+      "inputs": {
+        "image_node": "upload_image",
+        "prompt": "{{PROMPT}}"
+      }
+    },
+    "text_output": {
+      "class_type": "PrimitiveNode",
+      "inputs": {
+        "value": ""
+      }
+    }
+  },
+  "output_nodes": ["qwen_vl"]
+}
