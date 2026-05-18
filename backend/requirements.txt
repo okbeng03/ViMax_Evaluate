@@ -12,9 +12,10 @@ pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
 # CLIP model
-open_clip_torch>=2.24.0
+open_clip_torch>=3.3.0
 torch>=2.3.0
 torchvision>=0.18.0
+timm>=0.9.0  # Required for ViT-L and other vision transformers
 
 # LLM and LangChain
 langchain>=0.3.0

@@ -7,6 +7,7 @@ import httpx
 
 from PIL import Image
 import torch
+import open_clip
 
 from src.config import settings
 from src.utils.logger import logger
@@ -27,8 +28,6 @@ class CLIPEvaluator:
             return
 
         try:
-            import open_clip
-            
             self._device = settings.clip_device if torch.cuda.is_available() else "cpu"
             logger.info(f"Loading CLIP model: {settings.clip_model_name} on {self._device}")
             
@@ -41,6 +40,7 @@ class CLIPEvaluator:
                 )
             )
             
+            model.eval()  # 默认为 train 模式，需设为 eval
             self._model = model
             self._preprocess = preprocess
             self._initialized = True
@@ -68,8 +68,6 @@ class CLIPEvaluator:
             image = await self._load_image(image_source)
             
             def _compute_score():
-                import open_clip
-                
                 image_tensor = self._preprocess(image).unsqueeze(0).to(self._device)
                 with torch.no_grad():
                     image_features = self._model.encode_image(image_tensor)
