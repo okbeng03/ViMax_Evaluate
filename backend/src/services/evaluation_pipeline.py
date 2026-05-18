@@ -77,7 +77,8 @@ class EvaluationPipeline:
                     ),
                 )
 
-                structured_description = await self._run_comfyui_description(job)
+                # structured_description = await self._run_comfyui_description(job)
+                structured_description = "zzz"
                 
                 llm_consistency, llm_analysis, llm_score = await self._run_llm_evaluation(
                     job.prompt,
@@ -144,19 +145,21 @@ class EvaluationPipeline:
 
             await db.commit()
 
+    def _get_image_source(self, job: TaskJob) -> str:
+        """Get image source from job, checking url, base64, or hash_id."""
+        image_source = job.image_url or job.image_base64 or job.hash_id
+        if not image_source:
+            raise ValueError("No image source provided (url, base64, or hash_id)")
+        return image_source
+
     async def _run_clip_evaluation(self, job: TaskJob) -> tuple:
         """Run CLIP evaluation."""
-        image_source = job.image_url or job.image_base64
-        if not image_source:
-            raise ValueError("No image source provided")
-
+        image_source = self._get_image_source(job)
         return await clip_evaluator.evaluate(image_source, job.prompt)
 
     async def _run_comfyui_description(self, job: TaskJob) -> str:
         """Run ComfyUI description generation."""
-        image_source = job.image_url or job.image_base64
-        if not image_source:
-            raise ValueError("No image source provided")
+        image_source = self._get_image_source(job)
 
         try:
             return await comfyui_client.generate_description(image_source)

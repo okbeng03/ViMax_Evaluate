@@ -65,7 +65,7 @@ class ComfyUIClient:
     async def generate_description(
         self,
         image_source: str,
-        workflow_name: str = "qwen_vl_description",
+        workflow_name: str = "qwen_vl",
         custom_prompt: Optional[str] = None,
     ) -> str:
         """Generate structured description using Qwen VL via ComfyUI workflow.
@@ -109,10 +109,12 @@ class ComfyUIClient:
         if not workflow:
             raise ValueError(f"Workflow '{workflow_name}' not found. Available: {self.list_workflows()}")
         
-        image_data = await self._prepare_image(image_source)
+        # 上传图片到 ComfyUI 获取 image_name
+        image_name = await self._upload_image(image_source)
+        logger.info(f"Image uploaded to ComfyUI: {image_name}")
         
         # 替换工作流中的变量
-        workflow = self._replace_workflow_vars(workflow, image_data, custom_prompt)
+        workflow = self._replace_workflow_vars(workflow, image_name)
 
         response = await self._client.post("/prompt", json={"prompt": workflow})
         response.raise_for_status()
@@ -123,33 +125,19 @@ class ComfyUIClient:
     def _replace_workflow_vars(
         self,
         workflow: Dict[str, Any],
-        image_data: str,
-        custom_prompt: Optional[str] = None,
+        image_name: str,
     ) -> Dict[str, Any]:
         """Replace variables in workflow with actual values.
         
-        Supported variables:
-            - {{IMAGE_DATA}}: Base64 encoded image data
-            - {{PROMPT}}: Text prompt for the model
+        qwen_vl.json workflow structure:
+            Node "1" (LoadImage): sets image path/filename
+            Node "2" (AILab_QwenVL): takes image from node 1, sets model params
+            Node "5" (PreviewAny): preview output
         """
         import copy
         workflow = copy.deepcopy(workflow)
         
-        nodes = workflow.get("nodes", workflow)
-        
-        for node_id, node_config in nodes.items():
-            if not isinstance(node_config, dict):
-                continue
-            
-            inputs = node_config.get("inputs", {})
-            for key, value in inputs.items():
-                if isinstance(value, str):
-                    # 替换 IMAGE_DATA
-                    if value == "{{IMAGE_DATA}}":
-                        inputs[key] = image_data
-                    # 替换 PROMPT
-                    elif value == "{{PROMPT}}" and custom_prompt:
-                        inputs[key] = custom_prompt
+        workflow["1"]["inputs"]["image"] = image_name
         
         return workflow
 
@@ -175,6 +163,33 @@ class ComfyUIClient:
         image.save(buffer, format="PNG")
         image_bytes = buffer.getvalue()
         return base64.b64encode(image_bytes).decode("utf-8")
+
+    async def _upload_image(self, image_source: str) -> str:
+        """Upload image to ComfyUI and return the image name.
+        
+        Args:
+            image_source: Image source (URL, base64, or hash_id).
+        
+        Returns:
+            Image name as stored in ComfyUI.
+        """
+        image = await image_loader.load(image_source)
+        buffer = __import__("io").BytesIO()
+        image.save(buffer, format="PNG")
+        image_bytes = buffer.getvalue()
+        
+        files = {"image": ("image.png", image_bytes, "image/png")}
+        
+        response = await self._client.post("/upload/image", files=files)
+        response.raise_for_status()
+        data = response.json()
+        
+        # ComfyUI 返回格式: {"name": "xxx.png", "type": "input"}
+        image_name = data.get("name", "")
+        if not image_name:
+            raise ValueError(f"Failed to upload image: {data}")
+        
+        return image_name
 
     def _extract_description(self, result: Dict[str, Any]) -> str:
         """Extract description from workflow result."""

@@ -31,6 +31,7 @@ export interface TaskCreateRequest {
   project_id?: string;
   image_url?: string;
   image_base64?: string;
+  hash_id?: string;
   prompt: string;
 }
 

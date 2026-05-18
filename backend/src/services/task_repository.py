@@ -21,6 +21,7 @@ class TaskRepository:
             project_id=task_data.project_id,
             image_url=task_data.image_url,
             image_base64=task_data.image_base64,
+            hash_id=task_data.hash_id,
             prompt=task_data.prompt,
             status=TaskStatus.PENDING,
         )

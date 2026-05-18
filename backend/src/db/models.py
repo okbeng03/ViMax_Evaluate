@@ -55,6 +55,7 @@ class EvaluationTask(Base):
     project_id = Column(String(36), ForeignKey("projects.id"), nullable=True)
     image_url = Column(String(2048), nullable=True)
     image_base64 = Column(Text, nullable=True)
+    hash_id = Column(String(128), nullable=True)  # ComfyUI history hash
     prompt = Column(Text, nullable=False)
     status = Column(Enum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
     created_at = Column(DateTime, nullable=False, default=func.now())

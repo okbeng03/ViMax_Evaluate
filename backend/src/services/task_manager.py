@@ -25,7 +25,7 @@ class TaskManager:
         task = await self._repository.create_task(task_data)
         
         await ws_manager.send_status(
-            task.task_id,
+            task.id,
             str(task.status.value),
             ProgressInfo(
                 current_phase="queued",
@@ -39,6 +39,7 @@ class TaskManager:
             task_id=task.id,
             image_url=task.image_url,
             image_base64=task.image_base64,
+            hash_id=task.hash_id,
             prompt=task.prompt,
             project_id=task.project_id,
         )

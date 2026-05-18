@@ -55,10 +55,11 @@ export default function TaskSubmitPage() {
     project_id?: string;
     image_url?: string;
     image_base64?: string;
+    hash_id?: string;
     prompt: string;
   }) => {
-    if (!values.image_url && !values.image_base64) {
-      message.error('请提供图片URL或上传图片');
+    if (!values.image_url && !values.image_base64 && !values.hash_id) {
+      message.error('请提供图片URL、上传图片或输入Hash ID');
       return;
     }
 
@@ -68,6 +69,7 @@ export default function TaskSubmitPage() {
         project_id: values.project_id,
         image_url: values.image_url,
         image_base64: values.image_base64,
+        hash_id: values.hash_id,
         prompt: values.prompt,
       });
 
@@ -140,19 +142,33 @@ export default function TaskSubmitPage() {
 
           <Form.Item
             label="图片来源"
-            name="image_source"
           >
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Input
-                placeholder="图片URL (https://example.com/image.png)"
-                onChange={(e) => {
-                  form.setFieldValue('image_url', e.target.value || undefined);
-                  if (e.target.value) {
+              <Form.Item name="image_url" noStyle>
+                <Input
+                  placeholder="图片URL (https://example.com/image.png)"
+                  onChange={(e) => {
+                    form.setFieldValue('image_url', e.target.value || undefined);
+                    form.setFieldValue('hash_id', undefined);
+                    if (e.target.value) {
+                      form.setFieldValue('image_base64', undefined);
+                    }
+                  }}
+                />
+              </Form.Item>
+              <Divider plain>或</Divider>
+              <Form.Item name="hash_id" noStyle>
+                <Input
+                  placeholder="ComfyUI Hash ID"
+                  onChange={(e) => {
+                    form.setFieldValue('hash_id', e.target.value || undefined);
+                    form.setFieldValue('image_url', undefined);
                     form.setFieldValue('image_base64', undefined);
-                  }
-                }}
-              />
-              <Upload.Dragger {...uploadProps}>
+                  }}
+                />
+              </Form.Item>
+              <Divider plain>或</Divider>
+              <Upload.Dragger name="image_base64" {...uploadProps}>
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined />
                 </p>

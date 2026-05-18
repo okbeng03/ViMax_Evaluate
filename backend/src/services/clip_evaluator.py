@@ -29,16 +29,18 @@ class CLIPEvaluator:
         try:
             self._device = settings.clip_device if torch.cuda.is_available() else "cpu"
             
-            # 确定预训练模型路径
-            pretrained_path = settings.clip_model_path if settings.clip_model_path else "openai"
-            logger.info(f"Loading CLIP model: {settings.clip_model_name} on {self._device}, pretrained: {pretrained_path}")
+            # 模型架构名称（必须是内置的）
+            model_name = "ViT-L-14"
+            # 预训练权重：本地路径或 openai/laion2B 等
+            pretrained = settings.clip_model_path if settings.clip_model_path else "openai"
+            logger.info(f"Loading CLIP model: {model_name} on {self._device}, pretrained: {pretrained}")
             
             model, _, preprocess = await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: open_clip.create_model_and_transforms(
-                    settings.clip_model_name,
+                    model_name,
                     device=self._device,
-                    pretrained=pretrained_path
+                    pretrained=pretrained
                 )
             )
             
@@ -74,7 +76,7 @@ class CLIPEvaluator:
                 with torch.no_grad():
                     image_features = self._model.encode_image(image_tensor)
                     text_features = self._model.encode_text(
-                        open_clip.get_tokenizer(settings.clip_model_name)([prompt]).to(self._device)
+                        open_clip.get_tokenizer("ViT-L-14")([prompt]).to(self._device)
                     )
                     
                     image_features /= image_features.norm(dim=-1, keepdim=True)

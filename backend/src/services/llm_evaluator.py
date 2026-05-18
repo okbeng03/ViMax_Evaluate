@@ -2,8 +2,8 @@
 
 from typing import Tuple, Optional
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 from src.config import settings
@@ -30,14 +30,17 @@ class LLMEvaluator:
             return
 
         try:
+            # 本地 LLM 服务可能不需要真实 API key，使用占位符
+            api_key = settings.llm_api_key or "not-needed"
+            
             self._llm = ChatOpenAI(
                 model=settings.llm_model,
-                api_key=settings.llm_api_key,
+                api_key=api_key,
                 base_url=settings.llm_base_url,
                 timeout=settings.llm_timeout,
             )
             self._initialized = True
-            logger.info(f"LLM evaluator initialized: {settings.llm_model}")
+            logger.info(f"LLM evaluator initialized: {settings.llm_model} @ {settings.llm_base_url}")
         except Exception as e:
             logger.error(f"Failed to initialize LLM: {e}")
             raise

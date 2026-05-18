@@ -32,6 +32,7 @@ async def create_task(
     return TaskCreateResponse(
         task_id=result["task_id"],
         status=result["status"],
+        message="Task created successfully",
         created_at=result["created_at"],
     )
 

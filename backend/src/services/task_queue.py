@@ -12,9 +12,10 @@ from src.utils.logger import logger
 class TaskJob:
     """Task job data structure."""
     task_id: str
-    image_url: Optional[str]
-    image_base64: Optional[str]
-    prompt: str
+    image_url: Optional[str] = None
+    image_base64: Optional[str] = None
+    hash_id: Optional[str] = None
+    prompt: str = ""
     project_id: Optional[str] = None
 
 

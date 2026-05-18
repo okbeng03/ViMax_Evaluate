@@ -24,20 +24,20 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     # ComfyUI
-    comfyui_url: str = "http://localhost:8188"
-    comfyui_output_dir: str = "/Users/wangchangbin/ComfyUI/output"
+    comfyui_url: str = "http://127.0.0.1:8188"
+    comfyui_output_dir: str = r"D:\ComfyUI\output"
     comfyui_workflow_dir: str = "workflows"  # 本地工作流 JSON 文件目录
     comfyui_timeout: int = 300
 
     # LLM
     llm_api_key: Optional[str] = None
-    llm_base_url: str = "https://api.openai.com/v1"
+    llm_base_url: str = "http://127.0.0.1:8080/v1"
     llm_model: str = "gpt-4o"
     llm_timeout: int = 120
 
     # CLIP
-    clip_model_name: str = "apple/DFN2B-CLIP-ViT-L-14-39B"
-    clip_model_path: Optional[str] = None  # 本地模型路径，如 ~/.cache/huggingface/hub/open_clip_pytorch_model.bin
+    clip_model_name: str = "ViT-L-14"  # 内置架构名称
+    clip_model_path: Optional[str] = r"D:\llama.cpp\models\open_clip_pytorch_model.bin"  # 本地模型路径（可选）
     clip_device: str = "cuda"
 
     # Logging
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Performance
     max_concurrent_tasks: int = 10
-    task_timeout: int = 300
+    task_timeout: int = 1000
 
 
 settings = Settings()
