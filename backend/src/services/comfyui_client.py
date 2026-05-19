@@ -6,6 +6,7 @@ import asyncio
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 import base64
+import random
 
 import httpx
 
@@ -13,6 +14,7 @@ from src.config import settings
 from src.utils.logger import logger
 from src.services.image_loader import image_loader
 
+max_noise = 2**50 - 1
 
 class ComfyUIClient:
     """Client for ComfyUI Qwen VL workflow."""
@@ -67,7 +69,7 @@ class ComfyUIClient:
         image_source: str,
         workflow_name: str = "qwen_vl",
         custom_prompt: Optional[str] = None,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Generate structured description using Qwen VL via ComfyUI workflow.
         
         Args:
@@ -138,6 +140,9 @@ class ComfyUIClient:
         workflow = copy.deepcopy(workflow)
         
         workflow["1"]["inputs"]["image"] = image_name
+
+        # TODO:: random seed
+        # random.randint(1, max_noise)
         
         return workflow
 
@@ -156,14 +161,6 @@ class ComfyUIClient:
         
         raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
 
-    async def _prepare_image(self, image_source: str) -> str:
-        """Prepare image data for ComfyUI."""
-        image = await image_loader.load(image_source)
-        buffer = __import__("io").BytesIO()
-        image.save(buffer, format="PNG")
-        image_bytes = buffer.getvalue()
-        return base64.b64encode(image_bytes).decode("utf-8")
-
     async def _upload_image(self, image_source: str) -> str:
         """Upload image to ComfyUI and return the image name.
         
@@ -178,7 +175,7 @@ class ComfyUIClient:
         image.save(buffer, format="PNG")
         image_bytes = buffer.getvalue()
         
-        files = {"image": ("image.png", image_bytes, "image/png")}
+        files = {"image": (f"{uuid.uuid4()}.png", image_bytes, "image/png")}
         
         response = await self._client.post("/upload/image", files=files)
         response.raise_for_status()
