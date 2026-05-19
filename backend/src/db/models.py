@@ -81,4 +81,13 @@ class EvaluationResult(Base):
     processing_time_ms = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
 
+    # 扩展 LLM 评估结果
+    llm_overall_score = Column(Float, nullable=True)  # LLM 总体评分
+    llm_dimension_scores = Column(JSON, nullable=True)  # 各维度评分
+    llm_matched_requirements = Column(JSON, nullable=True)  # 匹配的需求
+    llm_missing_requirements = Column(JSON, nullable=True)  # 缺失的需求
+    llm_incorrect_requirements = Column(JSON, nullable=True)  # 错误的需求
+    llm_extra_elements = Column(JSON, nullable=True)  # 多余元素
+    llm_critical_failures = Column(JSON, nullable=True)  # 严重失败
+
     task = relationship("EvaluationTask", back_populates="result")

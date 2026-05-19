@@ -20,7 +20,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Agent图像评估系统...")
     await init_db()
     logger.info("Database initialized")
-    
+
+    await evaluation_pipeline.initialize()
+    logger.info("Evaluation pipeline initialized")
+
     await task_queue.start(evaluation_pipeline.process_job)
     logger.info("Task queue started")
     
