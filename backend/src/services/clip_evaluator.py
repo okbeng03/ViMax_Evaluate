@@ -22,16 +22,25 @@ class CLIPEvaluator:
         self._initialized = False
 
     async def initialize(self) -> None:
-        """Initialize CLIP model."""
+        """Initialize CLIP model (lazy loading - only loads when first used)."""
         if self._initialized:
             return
+        
+        # 模型为懒加载模式，只在第一次 evaluate() 时加载
+        self._initialized = True
+        logger.info("CLIP evaluator ready (lazy loading enabled)")
 
+    async def _ensure_loaded(self) -> None:
+        """Ensure model is loaded (called on first use)."""
+        if self._model is None:
+            await self._load_model()
+
+    async def _load_model(self) -> None:
+        """Load CLIP model."""
         try:
             self._device = settings.clip_device if torch.cuda.is_available() else "cpu"
             
-            # 模型架构名称（必须是内置的）
             model_name = "ViT-L-14"
-            # 预训练权重：本地路径或 openai/laion2B 等
             pretrained = settings.clip_model_path if settings.clip_model_path else "openai"
             logger.info(f"Loading CLIP model: {model_name} on {self._device}, pretrained: {pretrained}")
             
@@ -44,14 +53,24 @@ class CLIPEvaluator:
                 )
             )
             
-            model.eval()  # 默认为 train 模式，需设为 eval
+            model.eval()
             self._model = model
             self._preprocess = preprocess
-            self._initialized = True
             logger.info("CLIP model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load CLIP model: {e}")
             raise
+
+    def _release_model(self) -> None:
+        """Release model from memory and GPU."""
+        if self._model is not None:
+            del self._model
+            self._model = None
+            self._preprocess = None
+            if self._device and "cuda" in self._device:
+                torch.cuda.synchronize()  # 等待当前进程所有 CUDA 操作完成
+                torch.cuda.empty_cache()   # 清空当前进程缓存
+            logger.info("CLIP model released from memory")
 
     async def evaluate(
         self,
@@ -59,6 +78,8 @@ class CLIPEvaluator:
         prompt: str,
     ) -> Tuple[float, str]:
         """Evaluate semantic similarity between image and prompt.
+        
+        Model is loaded on demand and released after evaluation.
         
         Returns:
             Tuple of (score, interpretation)
@@ -69,6 +90,7 @@ class CLIPEvaluator:
             await self.initialize()
 
         try:
+            await self._ensure_loaded()
             image = await image_loader.load(image_source)
             
             def _compute_score():
@@ -97,6 +119,9 @@ class CLIPEvaluator:
         except Exception as e:
             logger.error(f"CLIP evaluation failed: {e}")
             raise
+        finally:
+            # 评估完成后立即释放模型
+            self._release_model()
 
     def _interpret_score(self, score: float) -> str:
         """Interpret CLIP score."""
