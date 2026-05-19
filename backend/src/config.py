@@ -27,13 +27,13 @@ class Settings(BaseSettings):
     comfyui_url: str = "http://127.0.0.1:8188"
     comfyui_output_dir: str = r"D:\ComfyUI\output"
     comfyui_workflow_dir: str = "workflows"  # 本地工作流 JSON 文件目录
-    comfyui_timeout: int = 300
+    comfyui_timeout: int = 1000
 
     # LLM
     llm_api_key: Optional[str] = None
     llm_base_url: str = "http://127.0.0.1:8080/v1"
-    llm_model: str = "gpt-4o"
-    llm_timeout: int = 120
+    llm_model: str = "qwen3.6-27b"
+    llm_timeout: int = 1000
 
     # CLIP
     clip_model_name: str = "ViT-L-14"  # 内置架构名称
