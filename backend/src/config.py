@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # ComfyUI
     comfyui_url: str = "http://127.0.0.1:8188"
     comfyui_output_dir: str = r"D:\ComfyUI\output"
+    comfyui_input_dir: str = r"D:\ComfyUI\input"
     comfyui_workflow_dir: str = "workflows"  # 本地工作流 JSON 文件目录
     comfyui_timeout: int = 1000
 

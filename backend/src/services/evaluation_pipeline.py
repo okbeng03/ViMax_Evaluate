@@ -65,7 +65,7 @@ class EvaluationPipeline:
                 )
 
                 clip_score, clip_interpretation = await self._run_clip_evaluation(job)
-                
+                print("=====\n", clip_score, clip_interpretation, "\n=====")
                 await self._update_status(
                     repository,
                     task_id,

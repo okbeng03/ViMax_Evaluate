@@ -68,8 +68,11 @@ class TaskManager:
         return {
             "task_id": task.id,
             "status": task.status,
+            "image_url": task.image_url,
+            "image_base64": task.image_base64,
+            "hash_id": task.hash_id,
+            "prompt": task.prompt,
             "project_id": task.project_id,
-            "prompt_summary": task.prompt[:50] + "..." if len(task.prompt) > 50 else task.prompt,
             "overall_score": overall_score,
             "created_at": task.created_at,
             "updated_at": task.updated_at,

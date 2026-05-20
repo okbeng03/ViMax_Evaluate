@@ -54,8 +54,11 @@ export interface ProgressInfo {
 export interface TaskStatusResponse {
   task_id: string;
   status: TaskStatus;
+  image_url?: string;
+  image_base64?: string;
+  hash_id?: string;
+  prompt?: string;
   project_id?: string;
-  prompt_summary?: string;
   overall_score?: number;
   progress?: ProgressInfo;
   created_at: string;

@@ -20,13 +20,18 @@ import {
   List,
   Space,
   Divider,
+  Image,
+  Collapse,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   WarningOutlined,
+  PictureOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
+import { Eye } from 'lucide-react';
 
 import { apiClient } from '../api/client';
 import { wsClient } from '../api/websocket';
@@ -227,6 +232,91 @@ export default function EvaluationDetailPage() {
                 />
                 <Text type="secondary">
                   已完成: {progress.phases_completed.join(', ') || '无'}
+                </Text>
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        {/* 图片和 Prompt 展示 */}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <PictureOutlined />
+                待评估图片
+              </Space>
+            }
+          >
+            {taskStatus?.image_url ? (
+              <Image
+                src={taskStatus.image_url}
+                alt="待评估图片"
+                style={{ width: '100%', maxHeight: 400, objectFit: 'contain' }}
+                placeholder={<div style={{ textAlign: 'center', padding: 50 }}><Spin /></div>}
+              />
+            ) : taskStatus?.hash_id ? (
+              <Image
+                src={`/comfyui-output/${taskStatus.hash_id}_00001_.png`}
+                alt="ComfyUI 输出图片"
+                style={{ width: '100%', maxHeight: 400, objectFit: 'contain' }}
+                placeholder={
+                  <div style={{ textAlign: 'center', padding: 50 }}>
+                    <Spin />
+                    <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                      Hash: {taskStatus.hash_id}
+                    </Text>
+                  </div>
+                }
+                fallback=""
+              />
+            ) : taskStatus?.image_base64 ? (
+              <Image
+                src={`data:image/png;base64,${taskStatus.image_base64}`}
+                alt="Base64 图片"
+                style={{ width: '100%', maxHeight: 400, objectFit: 'contain' }}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <PictureOutlined style={{ fontSize: 48, color: '#999' }} />
+                <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                  暂无图片
+                </Text>
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <FileTextOutlined />
+                评估 Prompt
+              </Space>
+            }
+          >
+            {taskStatus?.prompt ? (
+              <div style={{ maxHeight: 400, overflow: 'auto' }}>
+                <pre style={{ 
+                  whiteSpace: 'pre-wrap', 
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  margin: 0,
+                  padding: 8,
+                  background: '#f5f5f5',
+                  borderRadius: 4,
+                }}>
+                  {taskStatus.prompt}
+                </pre>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <FileTextOutlined style={{ fontSize: 48, color: '#999' }} />
+                <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                  暂无 Prompt
                 </Text>
               </div>
             )}
