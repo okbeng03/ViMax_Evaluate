@@ -79,7 +79,6 @@ class EvaluationPipeline:
                 )
 
                 structured_description = await self._run_comfyui_description(job)
-                # structured_description = "zzz"
                 
                 llm_result = await self._run_llm_evaluation(
                     job.prompt,

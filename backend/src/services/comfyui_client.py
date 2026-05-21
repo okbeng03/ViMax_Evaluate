@@ -18,7 +18,7 @@ from src.config import settings
 from src.utils.logger import logger
 from src.services.image_loader import image_loader
 
-max_noise = 2**50 - 1
+max_noise = 2**32 - 1
 
 class ComfyUIClient:
     """Client for ComfyUI Qwen VL workflow."""
@@ -90,14 +90,14 @@ class ComfyUIClient:
             await self.initialize()
 
         try:
-            prompt_id = await self._submit_workflow(
+            prompt_id, output_file = await self._submit_workflow(
                 image_source,
                 workflow_name,
                 custom_prompt,
             )
-            result = await self._wait_for_result(prompt_id, progress_callback)
+            await self._wait_for_result(prompt_id, progress_callback)
             
-            description = self._extract_description(result)
+            description = await self._fetch_text_file(output_file)
             logger.info(f"Generated description: {description[:100]}...")
             
             return description
@@ -128,13 +128,13 @@ class ComfyUIClient:
         logger.info(f"Image prepared for workflow: {image_name}")
         
         # 替换工作流中的变量
-        workflow = self._replace_workflow_vars(workflow, image_name)
+        workflow, output_file = self._replace_workflow_vars(workflow, image_name)
 
         response = await self._client.post("/prompt", json={"prompt": workflow})
         response.raise_for_status()
         data = response.json()
         
-        return data.get("prompt_id", "")
+        return data.get("prompt_id", ""), output_file
 
     def _is_hash_id(self, value: str) -> bool:
         """Check if value is a hash_id (UUID format without extension)."""
@@ -207,15 +207,17 @@ class ComfyUIClient:
         workflow = copy.deepcopy(workflow)
         
         workflow["1"]["inputs"]["image"] = image_name
-        workflow["14"]["inputs"]["seed"] = random.randint(1, max_noise)
+        workflow["6"]["inputs"]["seed"] = random.randint(1, max_noise)
+        output_file = f"{uuid.uuid4()}.txt"
+        workflow["12"]["inputs"]["file"] = output_file
         
-        return workflow
+        return workflow, output_file
 
     async def _wait_for_result(
         self,
         prompt_id: str,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    ) -> Dict[str, Any]:
+    ):
         """Wait for workflow completion using WebSocket and return result.
         
         Args:
@@ -238,8 +240,9 @@ class ComfyUIClient:
                 await ws.send(json.dumps(subscribe_msg))
                 logger.info(f"WebSocket subscribed to prompt_id: {prompt_id}")
                 
-                executed_nodes = set()
-                final_result = None
+                # executed_nodes = set()
+                # has_completed = False
+                # final_result = None
                 last_progress = {"percent": 0}
                 
                 while True:
@@ -248,27 +251,26 @@ class ComfyUIClient:
                         data = json.loads(message)
                         
                         msg_type = data.get("type", "")
-                        
+                        node_data = data.get("data", {})
+                        print(3333333, msg_type, node_data)
                         # 处理执行中状态
-                        if msg_type == "executing":
-                            node_data = data.get("data", {})
-                            node_id = node_data.get("node")
-                            if node_id:
-                                executed_nodes.add(node_id)
-                                progress_info = {
-                                    "type": "executing",
-                                    "node": node_id,
-                                    "executed_nodes": len(executed_nodes),
-                                }
-                                logger.debug(f"Executing node: {node_id}")
-                                if progress_callback:
-                                    progress_callback(progress_info)
+                        # if msg_type == "executing":
+                        #     node_id = node_data.get("node")
+                        #     if node_id:
+                        #         executed_nodes.add(node_id)
+                        #         progress_info = {
+                        #             "type": "executing",
+                        #             "node": node_id,
+                        #             "executed_nodes": len(executed_nodes),
+                        #         }
+                        #         logger.debug(f"Executing node: {node_id}")
+                        #         if progress_callback:
+                        #             progress_callback(progress_info)
                         
                         # 处理进度信息
-                        elif msg_type == "progress":
-                            progress_data = data.get("data", {})
-                            value = progress_data.get("value", 0)
-                            max_value = progress_data.get("max", 100)
+                        if msg_type == "progress":
+                            value = node_data.get("value", 0)
+                            max_value = node_data.get("max", 100)
                             percent = int(value / max_value * 100) if max_value > 0 else 0
                             last_progress = {
                                 "type": "progress",
@@ -281,53 +283,60 @@ class ComfyUIClient:
                                 progress_callback(last_progress)
                         
                         # 处理节点执行完成
-                        elif msg_type == "executed":
-                            node_data = data.get("data", {})
-                            node_id = node_data.get("node")
-                            output = node_data.get("output", {})
-                            progress_info = {
-                                "type": "executed",
-                                "node": node_id,
-                                "executed_nodes": len(executed_nodes),
-                            }
-                            logger.info(f"Node executed: {node_id}")
-                            if progress_callback:
-                                progress_callback(progress_info)
+                        # elif msg_type == "executed":
+                        #     node_id = node_data.get("node")
+                        #     output = node_data.get("output", {})
+
+                        #     if output:
+                        #         progress_info = {
+                        #             "type": "executed",
+                        #             "node": node_id,
+                        #             "executed_nodes": len(executed_nodes),
+                        #         }
+                        #         final_result = output
+                        #         logger.info(f"Node executed: {node_id}")
+                        #         if progress_callback:
+                        #             progress_callback(progress_info)
                         
-                        # 处理工作流完成
-                        elif msg_type == "executed":
-                            result_data = data.get("data", {})
-                            if "output" in result_data:
-                                final_result = result_data["output"]
-                                break
-                        
-                        # 处理完成状态
+                        # 处理 status 消息：通过 queue_remaining 判断工作流完成状态
                         elif msg_type == "status":
-                            status_data = data.get("data", {})
-                            status_obj = status_data.get("status", {})
-                            if status_obj.get("completed", False):
-                                break
+                            status_data = node_data.get("status", {})
+                            exec_info = status_data.get("exec_info", {})
+                            queue_remaining = exec_info.get("queue_remaining", -1)
+                            
+                            if queue_remaining == 0:
+                                # 队列为空，工作流已结束
+                                exception = node_data.get("exception", None)
+                                if exception:
+                                    logger.error(f"Workflow failed via status: {exception}")
+                                    raise Exception(f"Workflow failed via status: {exception}")
+                                else:
+                                    logger.info(f"Workflow completed via status: {prompt_id}")
+                                    break
+                            else:
+                                logger.debug(f"Queue remaining: {queue_remaining}")
                     
                     except asyncio.TimeoutError:
                         raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
         
-        except websockets.exceptions.WebSocketException as e:
+        except Exception as e:
             logger.warning(f"WebSocket error, falling back to HTTP polling: {e}")
-            return await self._poll_for_result(prompt_id)
+            raise e
+        #     return await self._poll_for_result(prompt_id)
         
-        # 通过 HTTP 获取最终结果
-        if final_result is None:
-            history_url = f"/history/{prompt_id}"
-            response = await self._client.get(history_url)
-            if response.status_code == 200:
-                data = response.json()
-                if prompt_id in data:
-                    final_result = data[prompt_id]
+        # # 通过 HTTP 获取最终结果
+        # if final_result is None:
+        #     history_url = f"/history/{prompt_id}"
+        #     response = await self._client.get(history_url)
+        #     if response.status_code == 200:
+        #         data = response.json()
+        #         if prompt_id in data:
+        #             final_result = data[prompt_id]
         
-        if final_result is None:
-            raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
+        # if final_result is None:
+        #     raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
         
-        return final_result
+        # return
 
     async def _poll_for_result(self, prompt_id: str) -> Dict[str, Any]:
         """Fallback polling method when WebSocket is unavailable."""
@@ -371,19 +380,21 @@ class ComfyUIClient:
         
         return image_name
 
-    def _extract_description(self, result: Dict[str, Any]) -> str:
-        """Extract description from workflow result."""
-        outputs = result.get("outputs", {})
-        for node_id, output in outputs.items():
-            if "text" in output:
-                return output["text"]
-            if "ui" in output:
-                ui_content = output["ui"]
-                if isinstance(ui_content, list) and len(ui_content) > 0:
-                    if isinstance(ui_content[0], dict) and "text" in ui_content[0]:
-                        return ui_content[0]["text"]
-        
-        return "无法生成描述"
+    async def _fetch_text_file(self, filename: str) -> str:
+        """Fetch text file content from ComfyUI via /view API."""
+        if not self._client:
+            await self.initialize()
+        try:
+            logger.info(f"Fetching text file from ComfyUI: {filename}")
+            response = await self._client.get("/view", params={"filename": filename})
+            response.raise_for_status()
+            # 使用 content + 显式 UTF-8 解码，避免 httpx.text 自动编码检测出错
+            content = response.content.decode("utf-8", errors="replace")
+            logger.info(f"Fetched {len(content)} chars from /view?filename={filename}")
+            return content
+        except Exception as e:
+            logger.error(f"Failed to fetch text file '{filename}' via /view: {e}")
+            return f"[读取文件失败: {filename}]"
 
 
 comfyui_client = ComfyUIClient()

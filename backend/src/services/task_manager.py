@@ -98,6 +98,8 @@ class TaskManager:
 
         return {
             "task_id": task.id,
+            "prompt": task.prompt,
+            "project_id": task.project_id,
             "clip_score": result.clip_score,
             "clip_interpretation": result.clip_interpretation,
             "structured_description": result.structured_description,

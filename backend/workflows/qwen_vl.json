@@ -8,21 +8,6 @@
       "title": "加载图像"
     }
   },
-  "5": {
-    "inputs": {
-      "preview_markdown": "",
-      "preview_text": "",
-      "previewMode": null,
-      "source": [
-        "6",
-        0
-      ]
-    },
-    "class_type": "PreviewAny",
-    "_meta": {
-      "title": "预览任意"
-    }
-  },
   "6": {
     "inputs": {
       "model_name": "Qwen3-VL-4B-Instruct",
@@ -31,7 +16,7 @@
       "use_torch_compile": true,
       "device": "cuda:0",
       "preset_prompt": "🖼️ Detailed Description",
-      "custom_prompt": "[Role]\nYou are a professional image understanding system specialized in evaluating AI-generated images.\n\n[Task]\nAnalyze the input image and convert ALL visible visual information into a highly structured factual representation for prompt-image alignment evaluation.\n\nDo NOT write artistic prose.\nDo NOT write subjective opinions.\nDo NOT infer hidden intentions.\nOnly describe what is visually observable.\n\nYour output will later be compared against the original image-generation prompt by another LLM system.\n\nTherefore:\n- Be exhaustive\n- Be explicit\n- Be spatially accurate\n- Be attribute-focused\n- Be consistent\n- Avoid ambiguity\n\n--------------------------------------------------\n[Output Requirements]\n\nReturn STRICT JSON only.\n\nSchema:\n\n{\n  \\\"summary\\\": {\n    \\\"scene_type\\\": \\\"\\\",\n    \\\"environment\\\": \\\"\\\",\n    \\\"time_of_day\\\": \\\"\\\",\n    \\\"weather\\\": \\\"\\\",\n    \\\"overall_style\\\": [],\n    \\\"mood\\\": [],\n    \\\"image_quality\\\": {\n      \\\"sharpness\\\": \\\"\\\",\n      \\\"lighting_quality\\\": \\\"\\\",\n      \\\"render_quality\\\": \\\"\\\",\n      \\\"artifact_level\\\": \\\"\\\"\n    }\n  },\n\n  \\\"camera\\\": {\n    \\\"shot_type\\\": \\\"\\\",\n    \\\"camera_angle\\\": \\\"\\\",\n    \\\"lens_feel\\\": \\\"\\\",\n    \\\"depth_of_field\\\": \\\"\\\",\n    \\\"composition\\\": \\\"\\\",\n    \\\"focus_subject\\\": \\\"\\\"\n  },\n\n  \\\"subjects\\\": [\n    {\n      \\\"id\\\": \\\"subject_1\\\",\n      \\\"type\\\": \\\"\\\",\n      \\\"species\\\": \\\"\\\",\n      \\\"gender\\\": \\\"\\\",\n      \\\"age_group\\\": \\\"\\\",\n      \\\"appearance\\\": {\n        \\\"hair\\\": \\\"\\\",\n        \\\"face\\\": \\\"\\\",\n        \\\"body\\\": \\\"\\\",\n        \\\"skin\\\": \\\"\\\",\n        \\\"special_features\\\": []\n      },\n      \\\"clothing\\\": [],\n      \\\"accessories\\\": [],\n      \\\"pose\\\": \\\"\\\",\n      \\\"action\\\": \\\"\\\",\n      \\\"expression\\\": \\\"\\\",\n      \\\"emotion\\\": [],\n      \\\"location_in_image\\\": \\\"\\\",\n      \\\"visibility\\\": \\\"\\\",\n      \\\"orientation\\\": \\\"\\\",\n      \\\"interaction\\\": [],\n      \\\"state\\\": []\n    }\n  ],\n\n  \\\"objects\\\": [\n    {\n      \\\"name\\\": \\\"\\\",\n      \\\"category\\\": \\\"\\\",\n      \\\"attributes\\\": [],\n      \\\"material\\\": \\\"\\\",\n      \\\"color\\\": [],\n      \\\"position\\\": \\\"\\\",\n      \\\"size_relative\\\": \\\"\\\",\n      \\\"state\\\": \\\"\\\",\n      \\\"interaction\\\": []\n    }\n  ],\n\n  \\\"environment_details\\\": {\n    \\\"background\\\": [],\n    \\\"foreground\\\": [],\n    \\\"lighting_sources\\\": [],\n    \\\"shadow_description\\\": [],\n    \\\"color_palette\\\": [],\n    \\\"atmospheric_effects\\\": []\n  },\n\n  \\\"spatial_relationships\\\": [\n    {\n      \\\"subject\\\": \\\"\\\",\n      \\\"relation\\\": \\\"\\\",\n      \\\"target\\\": \\\"\\\"\n    }\n  ],\n\n  \\\"style_features\\\": {\n    \\\"art_style\\\": [],\n    \\\"rendering_style\\\": [],\n    \\\"texture_style\\\": [],\n    \\\"animation_style\\\": [],\n    \\\"cinematic_features\\\": [],\n    \\\"reference_influences\\\": []\n  },\n\n  \\\"text_elements\\\": [\n    {\n      \\\"content\\\": \\\"\\\",\n      \\\"position\\\": \\\"\\\",\n      \\\"language\\\": \\\"\\\",\n      \\\"clarity\\\": \\\"\\\"\n    }\n  ],\n\n  \\\"detected_problems\\\": [\n    {\n      \\\"type\\\": \\\"\\\",\n      \\\"description\\\": \\\"\\\",\n      \\\"severity\\\": \\\"\\\"\n    }\n  ],\n\n  \\\"uncertain_elements\\\": [\n    {\n      \\\"element\\\": \\\"\\\",\n      \\\"reason\\\": \\\"\\\"\n    }\n  ]\n}\n\n--------------------------------------------------\n[Important Rules]\n\n1. Distinguish clearly between:\n- directly visible facts\n- uncertain guesses\n\n2. Never omit:\n- positions\n- actions\n- interactions\n- lighting direction\n- camera angle\n- style characteristics\n\n3. If multiple subjects exist:\n- describe each independently\n- assign unique IDs\n\n4. For anime/cartoon/stylized images:\ndescribe BOTH:\n- semantic content\n- stylistic characteristics\n\n5. If text is visible:\nextract exact text.\n\n6. Detect generation artifacts when possible:\nexamples:\n- extra fingers\n- broken anatomy\n- malformed eyes\n- inconsistent shadows\n- fused objects\n- floating objects\n- duplicated limbs\n- distorted text\n\n7. If an attribute is absent or unclear:\nuse null instead of hallucinating.\n\n8. Output must be valid JSON.\nNo markdown.\nNo explanation.\n\n9. 描述请使用中文",
+      "custom_prompt": "[Role]\nYou are a professional image understanding system specialized in evaluating AI-generated images.\n\n[Task]\nAnalyze the input image and convert ALL visible visual information into a highly structured factual representation for prompt-image alignment evaluation.\n\nDo NOT write artistic prose.\nDo NOT write subjective opinions.\nDo NOT infer hidden intentions.\nOnly describe what is visually observable.\n\nYour output will later be compared against the original image-generation prompt by another LLM system.\n\nTherefore:\n- Be exhaustive\n- Be explicit\n- Be spatially accurate\n- Be attribute-focused\n- Be consistent\n- Avoid ambiguity\n\n--------------------------------------------------\n[Output Requirements]\n\nReturn STRICT JSON only.\n\nSchema:\n\n{\n  \"summary\": {\n    \"scene_type\": \"\",\n    \"environment\": \"\",\n    \"time_of_day\": \"\",\n    \"weather\": \"\",\n    \"overall_style\": [],\n    \"mood\": [],\n    \"image_quality\": {\n      \"sharpness\": \"\",\n      \"lighting_quality\": \"\",\n      \"render_quality\": \"\",\n      \"artifact_level\": \"\"\n    }\n  },\n\n  \"camera\": {\n    \"shot_type\": \"\",\n    \"camera_angle\": \"\",\n    \"lens_feel\": \"\",\n    \"depth_of_field\": \"\",\n    \"composition\": \"\",\n    \"focus_subject\": \"\"\n  },\n\n  \"subjects\": [\n    {\n      \"id\": \"subject_1\",\n      \"type\": \"\",\n      \"species\": \"\",\n      \"gender\": \"\",\n      \"age_group\": \"\",\n      \"appearance\": {\n        \"hair\": \"\",\n        \"face\": \"\",\n        \"body\": \"\",\n        \"skin\": \"\",\n        \"special_features\": []\n      },\n      \"clothing\": [],\n      \"accessories\": [],\n      \"pose\": \"\",\n      \"action\": \"\",\n      \"expression\": \"\",\n      \"emotion\": [],\n      \"location_in_image\": \"\",\n      \"visibility\": \"\",\n      \"orientation\": \"\",\n      \"interaction\": [],\n      \"state\": []\n    }\n  ],\n\n  \"objects\": [\n    {\n      \"name\": \"\",\n      \"category\": \"\",\n      \"attributes\": [],\n      \"material\": \"\",\n      \"color\": [],\n      \"position\": \"\",\n      \"size_relative\": \"\",\n      \"state\": \"\",\n      \"interaction\": []\n    }\n  ],\n\n  \"environment_details\": {\n    \"background\": [],\n    \"foreground\": [],\n    \"lighting_sources\": [],\n    \"shadow_description\": [],\n    \"color_palette\": [],\n    \"atmospheric_effects\": []\n  },\n\n  \"spatial_relationships\": [\n    {\n      \"subject\": \"\",\n      \"relation\": \"\",\n      \"target\": \"\"\n    }\n  ],\n\n  \"style_features\": {\n    \"art_style\": [],\n    \"rendering_style\": [],\n    \"texture_style\": [],\n    \"animation_style\": [],\n    \"cinematic_features\": [],\n    \"reference_influences\": []\n  },\n\n  \"text_elements\": [\n    {\n      \"content\": \"\",\n      \"position\": \"\",\n      \"language\": \"\",\n      \"clarity\": \"\"\n    }\n  ],\n\n  \"detected_problems\": [\n    {\n      \"type\": \"\",\n      \"description\": \"\",\n      \"severity\": \"\"\n    }\n  ],\n\n  \"uncertain_elements\": [\n    {\n      \"element\": \"\",\n      \"reason\": \"\"\n    }\n  ]\n}\n\n--------------------------------------------------\n[Important Rules]\n\n1. Distinguish clearly between:\n- directly visible facts\n- uncertain guesses\n\n2. Never omit:\n- positions\n- actions\n- interactions\n- lighting direction\n- camera angle\n- style characteristics\n\n3. If multiple subjects exist:\n- describe each independently\n- assign unique IDs\n\n4. For anime/cartoon/stylized images:\ndescribe BOTH:\n- semantic content\n- stylistic characteristics\n\n5. If text is visible:\nextract exact text.\n\n6. Detect generation artifacts when possible:\nexamples:\n- extra fingers\n- broken anatomy\n- malformed eyes\n- inconsistent shadows\n- fused objects\n- floating objects\n- duplicated limbs\n- distorted text\n\n7. If an attribute is absent or unclear:\nuse null instead of hallucinating.\n\n8. Output must be valid JSON.\nNo markdown.\nNo explanation.\n\n9. 描述请使用中文",
       "max_tokens": 4096,
       "temperature": 0.6,
       "top_p": 0.9,
@@ -52,7 +37,7 @@
   },
   "8": {
     "inputs": {
-      "scale_by": 0.4,
+      "scale_by": 0.35,
       "images": [
         "1",
         0
@@ -61,6 +46,22 @@
     "class_type": "easy imageScaleDownBy",
     "_meta": {
       "title": "图像缩小（按比例）"
+    }
+  },
+  "12": {
+    "inputs": {
+      "root_dir": "output",
+      "file": "file.txt",
+      "append": "overwrite",
+      "insert": true,
+      "text": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "SaveText|pysssss",
+    "_meta": {
+      "title": "Save Text 🐍"
     }
   }
 }

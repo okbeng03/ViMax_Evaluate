@@ -198,7 +198,7 @@ class LLMConsistencyResult(BaseModel):
 # """
 
 # 尊重创意 schema
-System_Prompt = \
+SYSTEM_PROMPT = \
 """
 [Role]
 你是一个专业的 AI 图像生成质量评估专家。

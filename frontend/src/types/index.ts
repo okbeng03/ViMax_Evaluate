@@ -87,6 +87,8 @@ export interface TaskListResponse {
 /** Evaluation result response */
 export interface EvaluationResultResponse {
   task_id: string;
+  prompt?: string;
+  project_id?: string;
   clip_score: number;
   clip_interpretation: string;
   structured_description: string;

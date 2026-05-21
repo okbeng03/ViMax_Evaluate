@@ -38,7 +38,6 @@ class CLIPEvaluator:
     async def _load_model(self) -> None:
         """Load CLIP model."""
         try:
-            print(1111111, torch.cuda.is_available())
             self._device = settings.clip_device if torch.cuda.is_available() else "cpu"
             
             model_name = "ViT-L-14"

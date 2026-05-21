@@ -59,6 +59,9 @@ class LlamaServer:
                     "-c", str(settings.llama_context_size),
                     "--port", str(settings.llama_port),
                     "-ngl", str(settings.llama_n_gpu_layers),
+                    "--host", "0.0.0.0",
+                    "-ctk", "q8_0",
+                    "-ctv", "q8_0",
                 ]
                 
                 # Add optional flags
@@ -75,20 +78,32 @@ class LlamaServer:
                 self._process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
+                    stderr=subprocess.PIPE,
                     text=True,
                     bufsize=1,
                 )
                 
                 self._start_time = time.time()
-                self._is_running = True
-
+                print(4444444)
+                
+                # 检查进程是否立即退出
+                await asyncio.sleep(0.5)
+                if self._process.poll() is not None:
+                    stdout = self._process.stdout.read() if self._process.stdout else ""
+                    stderr = self._process.stderr.read() if self._process.stderr else ""
+                    logger.error(f"Llama server failed to start (exit code {self._process.returncode})")
+                    logger.error(f"STDOUT: {stdout.strip()}")
+                    logger.error(f"STDERR: {stderr.strip()}")
+                    return False
+                
                 # Wait for server to be ready
                 if await self._wait_for_server(timeout):
+                    self._is_running = True
                     uptime = time.time() - self._start_time
                     logger.info(f"Llama server started successfully in {uptime:.1f}s")
                     return True
                 else:
+                    self._is_running = False
                     logger.error("Llama server failed to start within timeout")
                     await self.stop()
                     return False
@@ -158,22 +173,32 @@ class LlamaServer:
 
         health_url = f"{self.base_url}/health"
         start = time.time()
-
+        logger.info(f"Waiting for llama server at {health_url}, timeout={timeout}s")
+        
         while time.time() - start < timeout:
             if self._process and self._process.poll() is not None:
-                # Process died
+                return_code = self._process.poll()
+                logger.error(f"Llama server process died with code: {return_code}")
                 return False
 
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.get(health_url)
                     if response.status_code == 200:
+                        logger.info(f"Llama server ready")
                         return True
-            except (httpx.ConnectError, httpx.TimeoutException):
-                pass
+                    else:
+                        logger.debug(f"Llama server returned {response.status_code}")
+            except httpx.ConnectError:
+                logger.debug("Llama server connect failed, retrying...")
+            except httpx.TimeoutException:
+                logger.debug("Llama server timeout, retrying...")
+            except Exception as e:
+                logger.warning(f"Llama server check error: {type(e).__name__}: {e}")
 
             await asyncio.sleep(1)
-
+        
+        logger.warning(f"Llama server did not become ready within {timeout}s")
         return False
 
     async def get_server_info(self) -> dict:
