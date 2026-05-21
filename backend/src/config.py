@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3.6-27b"
     llm_timeout: int = 1000
 
+    # Llama Server (llama.cpp)
+    llama_server_path: str = "llama-server"  # llama.cpp server executable path
+    llama_model_path: str = "models/qwen3.6-27b-q4_k_m.gguf"  # Model file path
+    llama_port: int = 8080  # Server port
+    llama_context_size: int = 16384  # Context window size
+    llama_n_gpu_layers: int = 30  # Layers offloaded to GPU (adjust based on your VRAM)
+    llama_n_threads: Optional[int] = None  # CPU threads (None = auto)
+    llama_n_parallel: int = 1  # Parallel requests
+    llama_flash_attention: bool = True  # Enable flash attention
+    llama_startup_timeout: int = 120  # Max seconds to wait for server startup
+
     # CLIP
     clip_model_name: str = "ViT-L-14"  # 内置架构名称
     clip_model_path: Optional[str] = r"D:\llama.cpp\models\open_clip_pytorch_model.bin"  # 本地模型路径（可选）
