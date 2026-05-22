@@ -74,7 +74,7 @@ class ComfyUIClient:
         workflow_name: str = "qwen_vl",
         custom_prompt: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Generate structured description using Qwen VL via ComfyUI workflow.
         
         Args:
@@ -240,9 +240,6 @@ class ComfyUIClient:
                 await ws.send(json.dumps(subscribe_msg))
                 logger.info(f"WebSocket subscribed to prompt_id: {prompt_id}")
                 
-                # executed_nodes = set()
-                # has_completed = False
-                # final_result = None
                 last_progress = {"percent": 0}
                 
                 while True:
@@ -252,21 +249,7 @@ class ComfyUIClient:
                         
                         msg_type = data.get("type", "")
                         node_data = data.get("data", {})
-                        print(3333333, msg_type, node_data)
-                        # 处理执行中状态
-                        # if msg_type == "executing":
-                        #     node_id = node_data.get("node")
-                        #     if node_id:
-                        #         executed_nodes.add(node_id)
-                        #         progress_info = {
-                        #             "type": "executing",
-                        #             "node": node_id,
-                        #             "executed_nodes": len(executed_nodes),
-                        #         }
-                        #         logger.debug(f"Executing node: {node_id}")
-                        #         if progress_callback:
-                        #             progress_callback(progress_info)
-                        
+
                         # 处理进度信息
                         if msg_type == "progress":
                             value = node_data.get("value", 0)
@@ -281,22 +264,6 @@ class ComfyUIClient:
                             logger.info(f"Progress: {percent}%")
                             if progress_callback:
                                 progress_callback(last_progress)
-                        
-                        # 处理节点执行完成
-                        # elif msg_type == "executed":
-                        #     node_id = node_data.get("node")
-                        #     output = node_data.get("output", {})
-
-                        #     if output:
-                        #         progress_info = {
-                        #             "type": "executed",
-                        #             "node": node_id,
-                        #             "executed_nodes": len(executed_nodes),
-                        #         }
-                        #         final_result = output
-                        #         logger.info(f"Node executed: {node_id}")
-                        #         if progress_callback:
-                        #             progress_callback(progress_info)
                         
                         # 处理 status 消息：通过 queue_remaining 判断工作流完成状态
                         elif msg_type == "status":
@@ -322,36 +289,6 @@ class ComfyUIClient:
         except Exception as e:
             logger.warning(f"WebSocket error, falling back to HTTP polling: {e}")
             raise e
-        #     return await self._poll_for_result(prompt_id)
-        
-        # # 通过 HTTP 获取最终结果
-        # if final_result is None:
-        #     history_url = f"/history/{prompt_id}"
-        #     response = await self._client.get(history_url)
-        #     if response.status_code == 200:
-        #         data = response.json()
-        #         if prompt_id in data:
-        #             final_result = data[prompt_id]
-        
-        # if final_result is None:
-        #     raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
-        
-        # return
-
-    async def _poll_for_result(self, prompt_id: str) -> Dict[str, Any]:
-        """Fallback polling method when WebSocket is unavailable."""
-        history_url = f"/history/{prompt_id}"
-        
-        for _ in range(settings.comfyui_timeout // 2):
-            await asyncio.sleep(2)
-            
-            response = await self._client.get(history_url)
-            if response.status_code == 200:
-                data = response.json()
-                if prompt_id in data:
-                    return data[prompt_id]
-        
-        raise TimeoutError(f"ComfyUI workflow timed out: {prompt_id}")
 
     async def _upload_image(self, image_source: str) -> str:
         """Upload image to ComfyUI and return the image name.
@@ -381,17 +318,51 @@ class ComfyUIClient:
         return image_name
 
     async def _fetch_text_file(self, filename: str) -> str:
-        """Fetch text file content from ComfyUI via /view API."""
+        """Fetch text file content from ComfyUI via /view API.
+        
+        Handles encoding detection because SaveText|pysssss may write
+        text files in non-UTF-8 encoding (e.g., GBK on some systems).
+        """
         if not self._client:
             await self.initialize()
         try:
             logger.info(f"Fetching text file from ComfyUI: {filename}")
             response = await self._client.get("/view", params={"filename": filename})
             response.raise_for_status()
-            # 使用 content + 显式 UTF-8 解码，避免 httpx.text 自动编码检测出错
-            content = response.content.decode("utf-8", errors="replace")
-            logger.info(f"Fetched {len(content)} chars from /view?filename={filename}")
-            return content
+
+            raw_bytes = response.content
+            logger.info(f"Raw bytes size: {len(raw_bytes)}, Content-Type: {response.headers.get('content-type', 'N/A')}")
+
+            # 1) 先用 httpx 的自动检测（依赖 charset_normalizer/chardet）
+            text = response.text
+            replacement_count = text.count('\ufffd')
+
+            # 2) 如果替换字符过多，说明自动检测的编码不对，用 GB18030 重试
+            #    GB18030 是 GBK/GB2312 的超集，覆盖所有中文字符
+            if replacement_count > max(len(text) * 0.05, 5):
+                logger.warning(
+                    f"Auto-detected encoding produced {replacement_count} replacement chars "
+                    f"({replacement_count / max(len(text), 1) * 100:.1f}%), retrying with GB18030"
+                )
+                try:
+                    gb_text = raw_bytes.decode('gb18030')
+                    gb_replacement = gb_text.count('\ufffd')
+                    if gb_replacement < replacement_count:
+                        logger.info(f"GB18030 decode better: {gb_replacement} vs {replacement_count} replacement chars")
+                        text = gb_text
+                except (UnicodeDecodeError, LookupError):
+                    pass
+
+            # 3) 最终兜底：如果仍然大量乱码，记录警告
+            final_replacement = text.count('\ufffd')
+            if final_replacement > 0:
+                logger.warning(
+                    f"Text still has {final_replacement} replacement chars after encoding fix, "
+                    f"content may be corrupted"
+                )
+
+            logger.info(f"Fetched {len(text)} chars from /view?filename={filename}")
+            return text
         except Exception as e:
             logger.error(f"Failed to fetch text file '{filename}' via /view: {e}")
             return f"[读取文件失败: {filename}]"
