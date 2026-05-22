@@ -1,5 +1,6 @@
 """LLM evaluator using LangChain for structured comparison."""
 
+import re
 from typing import Tuple, Optional, List
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -398,6 +399,22 @@ class LLMEvaluator:
             await llama_server.stop()
             logger.info("Llama server stopped after evaluation")
 
+    @staticmethod
+    def _strip_thinking_tags(text: str) -> str:
+        """移除 Qwen 思考模式输出的 <thinking> 和 <reasoning> 标签及内容。
+
+        Qwen 3.5 思考模式输出格式：
+            <thinking>
+            逐步分析...
+            </thinking>
+            ```json
+            {...}
+            ```
+        """
+        text = re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<reasoning>.*?</reasoning>', '', text, flags=re.DOTALL)
+        return text.strip()
+
     async def evaluate(
         self,
         prompt: str,
@@ -417,17 +434,21 @@ class LLMEvaluator:
             await self.initialize()
 
         try:
-            # Ensure server is running
             await self._ensure_server_running()
 
             parser = PydanticOutputParser(pydantic_object=LLMConsistencyResult)
-            chain = EVAL_TEMPLATE | self._llm | parser
 
-            result = await chain.ainvoke({
+            # Qwen 思考模式会在输出中插入 <thinking>/<reasoning> 标签，
+            # 移除标签后，parser 内置的 JSON 提取逻辑就能正常工作
+            raw_chain = EVAL_TEMPLATE | self._llm
+            raw_output = await raw_chain.ainvoke({
                 "prompt": prompt,
                 "description": structured_description,
                 "format_instructions": parser.get_format_instructions(),
             })
+            print("=====\n", raw_output.content, "\n=====")
+            cleaned = self._strip_thinking_tags(raw_output.content)
+            result = parser.parse(cleaned)
 
             logger.info(
                 f"LLM evaluation: consistency={result.consistency}, "
