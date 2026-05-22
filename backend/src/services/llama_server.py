@@ -84,7 +84,6 @@ class LlamaServer:
                 )
                 
                 self._start_time = time.time()
-                print(4444444)
                 
                 # 检查进程是否立即退出
                 await asyncio.sleep(0.5)
