@@ -9,6 +9,7 @@ from src.models.schemas import TaskCreate, TaskJob, ProgressInfo
 from src.services.task_queue import task_queue, TaskJob as QueueTaskJob
 from src.services.task_repository import TaskRepository
 from src.services.websocket_manager import ws_manager
+from src.services.sse_manager import sse_manager
 from src.utils.logger import logger
 from src.utils.exceptions import AppException
 
@@ -108,6 +109,14 @@ class TaskManager:
             "overall_score": result.overall_score,
             "processing_time_ms": result.processing_time_ms,
             "created_at": result.created_at,
+            # LLM 扩展字段
+            "llm_overall_score": result.llm_overall_score,
+            "llm_dimension_scores": result.llm_dimension_scores,
+            "llm_matched_requirements": result.llm_matched_requirements,
+            "llm_missing_requirements": result.llm_missing_requirements,
+            "llm_incorrect_requirements": result.llm_incorrect_requirements,
+            "llm_extra_elements": result.llm_extra_elements,
+            "llm_critical_failures": result.llm_critical_failures,
         }
 
     async def list_tasks(
@@ -138,6 +147,8 @@ class TaskManager:
                 "project_id": task.project_id,
                 "prompt_summary": task.prompt[:50] + "..." if len(task.prompt) > 50 else task.prompt,
                 "overall_score": result.overall_score if result else None,
+                "clip_score": result.clip_score if result else None,
+                "llm_score": result.llm_overall_score if result else None,
                 "created_at": task.created_at,
             })
 
@@ -154,7 +165,7 @@ class TaskManager:
         status: TaskStatus,
         progress: Optional[ProgressInfo] = None,
     ) -> None:
-        """Update task status and notify via WebSocket."""
+        """Update task status and notify via WebSocket + SSE."""
         task = await self._repository.update_task_status(task_id, status)
         if task:
             progress_data = progress.model_dump() if progress else None
@@ -163,4 +174,10 @@ class TaskManager:
                 status.value,
                 progress_data,
             )
+            # SSE broadcast for page-level updates
+            await sse_manager.broadcast_task_updated(task_id, status.value)
+            if status == TaskStatus.COMPLETED:
+                result = await self._repository.get_result_by_task_id(task_id)
+                overall_score = result.overall_score if result else 0.0
+                await sse_manager.broadcast_task_completed(task_id, overall_score)
             logger.info(f"Task {task_id} status updated to {status.value}", extra={"task_id": task_id})

@@ -1,12 +1,18 @@
 """Task repository for database operations."""
 
+import asyncio
 from typing import Optional, List, Tuple
 from datetime import datetime
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import OperationalError
 
 from src.db.models import EvaluationTask, EvaluationResult, TaskStatus
 from src.models.schemas import TaskCreate, TaskStatus as TaskStatusEnum
+from src.utils.logger import logger
+
+DB_RETRY_COUNT = 3
+DB_RETRY_DELAY = 0.5  # seconds
 
 
 class TaskRepository:
@@ -15,8 +21,38 @@ class TaskRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def _retry_flush(self, operation_name: str = "flush", re_add=None) -> None:
+        """Retry flush on database locked error, then commit to ensure durability.
+        
+        re_add: optional list of ORM objects to re-add to session after rollback,
+                because rollback detaches all objects from the session.
+        """
+        for attempt in range(DB_RETRY_COUNT):
+            try:
+                await self.db.flush()
+                await self.db.commit()  # 显式提交，确保数据落盘
+                return
+            except OperationalError as e:
+                if "database is locked" in str(e) and attempt < DB_RETRY_COUNT - 1:
+                    logger.warning(
+                        f"Database locked during {operation_name}, retry {attempt + 1}/{DB_RETRY_COUNT}"
+                    )
+                    await asyncio.sleep(DB_RETRY_DELAY * (attempt + 1))
+                    # 回滚当前失败的事务后重试
+                    await self.db.rollback()
+                    # rollback 后对象已从 session 分离，需要重新加入
+                    if re_add is not None:
+                        for obj in re_add:
+                            self.db.add(obj)
+                    continue
+                raise
+
     async def create_task(self, task_data: TaskCreate) -> EvaluationTask:
-        """Create a new evaluation task."""
+        """Create a new evaluation task.
+        
+        任务先写入数据库并提交，确认持久化后，调用方再将其加入任务队列。
+        这样确保入队前数据已可靠存储，避免 database locked 导致的不一致。
+        """
         task = EvaluationTask(
             project_id=task_data.project_id,
             image_url=task_data.image_url,
@@ -26,7 +62,8 @@ class TaskRepository:
             status=TaskStatus.PENDING,
         )
         self.db.add(task)
-        await self.db.flush()
+        await self._retry_flush("create_task", re_add=[task])
+        # flush+commit 成功后，session 自动开始新事务，refresh 仍可正常工作
         await self.db.refresh(task)
         return task
 
@@ -55,14 +92,37 @@ class TaskRepository:
         status: TaskStatus,
         completed_at: Optional[datetime] = None,
     ) -> Optional[EvaluationTask]:
-        """Update task status."""
+        """Update task status (flush + commit, with retry on locked)."""
         task = await self.get_task_by_id(task_id)
-        if task:
-            task.status = status
-            if completed_at:
-                task.completed_at = completed_at
-            await self.db.flush()
-            await self.db.refresh(task)
+        if not task:
+            return None
+
+        task.status = status
+        if completed_at:
+            task.completed_at = completed_at
+
+        for attempt in range(DB_RETRY_COUNT):
+            try:
+                await self.db.flush()
+                await self.db.commit()
+                await self.db.refresh(task)
+                return task
+            except OperationalError as e:
+                if "database is locked" in str(e) and attempt < DB_RETRY_COUNT - 1:
+                    logger.warning(
+                        f"Database locked during update_task_status, retry {attempt + 1}/{DB_RETRY_COUNT}"
+                    )
+                    await asyncio.sleep(DB_RETRY_DELAY * (attempt + 1))
+                    await self.db.rollback()
+                    # rollback 后对象已分离，重新查询并应用修改
+                    task = await self.get_task_by_id(task_id)
+                    if task:
+                        task.status = status
+                        if completed_at:
+                            task.completed_at = completed_at
+                    continue
+                raise
+
         return task
 
     async def list_tasks(

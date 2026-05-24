@@ -13,6 +13,7 @@ from src.services.clip_evaluator import clip_evaluator
 from src.services.comfyui_client import comfyui_client
 from src.services.llm_evaluator import llm_evaluator, LLMConsistencyResult
 from src.services.websocket_manager import ws_manager
+from src.services.sse_manager import sse_manager
 from src.services.task_repository import TaskRepository
 from src.db.database import AsyncSessionLocal
 from src.utils.logger import logger
@@ -42,20 +43,23 @@ class EvaluationPipeline:
             self._initialized = True
 
     async def process_job(self, job: TaskJob) -> None:
-        """Process a single evaluation job."""
+        """Process a single evaluation job.
+        
+        Uses short-lived DB sessions — each DB operation opens and closes
+        its own session so that long-running external calls (CLIP, ComfyUI, LLM)
+        don't block other API requests waiting for the database.
+        """
         start_time = time.time()
         task_id = job.task_id
 
         logger.info(f"Starting evaluation for task {task_id}", extra={"task_id": task_id})
 
-        async with AsyncSessionLocal() as db:
-            repository = TaskRepository(db)
-
-            try:
+        try:
+            # Phase 1: CLIP evaluation (update status first)
+            async with AsyncSessionLocal() as db:
+                repo = TaskRepository(db)
                 await self._update_status(
-                    repository,
-                    task_id,
-                    TaskStatus.PROCESSING,
+                    repo, task_id, TaskStatus.PROCESSING,
                     ProgressInfo(
                         current_phase="clip_evaluation",
                         phases_completed=[],
@@ -64,12 +68,13 @@ class EvaluationPipeline:
                     ),
                 )
 
-                clip_score, clip_interpretation = await self._run_clip_evaluation(job)
-                print("=====\n", clip_score, clip_interpretation, "\n=====")
+            clip_score, clip_interpretation = await self._run_clip_evaluation(job)
+
+            # Phase 2: LLM evaluation
+            async with AsyncSessionLocal() as db:
+                repo = TaskRepository(db)
                 await self._update_status(
-                    repository,
-                    task_id,
-                    TaskStatus.PROCESSING,
+                    repo, task_id, TaskStatus.PROCESSING,
                     ProgressInfo(
                         current_phase="llm_evaluation",
                         phases_completed=["clip_evaluation"],
@@ -78,35 +83,27 @@ class EvaluationPipeline:
                     ),
                 )
 
-                structured_description = await self._run_comfyui_description(job)
-                
-                llm_result = await self._run_llm_evaluation(
-                    job.prompt,
-                    structured_description,
-                )
+            structured_description = await self._run_comfyui_description(job)
+            llm_result = await self._run_llm_evaluation(
+                job.prompt, structured_description,
+            )
 
-                overall_score = self._calculate_overall_score(
-                    clip_score,
-                    llm_result.overall_score,
-                )
+            overall_score = self._calculate_overall_score(
+                clip_score, llm_result.overall_score,
+            )
+            processing_time_ms = int((time.time() - start_time) * 1000)
 
-                processing_time_ms = int((time.time() - start_time) * 1000)
-
+            # Phase 3: Save result and mark completed
+            async with AsyncSessionLocal() as db:
+                repo = TaskRepository(db)
                 await self._save_result(
-                    repository,
-                    task_id,
-                    clip_score,
-                    clip_interpretation,
-                    structured_description,
-                    llm_result,
-                    overall_score,
-                    processing_time_ms,
+                    repo, task_id,
+                    clip_score, clip_interpretation,
+                    structured_description, llm_result,
+                    overall_score, processing_time_ms,
                 )
-
                 await self._update_status(
-                    repository,
-                    task_id,
-                    TaskStatus.COMPLETED,
+                    repo, task_id, TaskStatus.COMPLETED,
                     ProgressInfo(
                         current_phase="completed",
                         phases_completed=["clip_evaluation", "llm_evaluation"],
@@ -115,34 +112,30 @@ class EvaluationPipeline:
                     ),
                 )
 
-                await ws_manager.send_result(
-                    task_id,
-                    clip_score,
-                    clip_interpretation,
-                    overall_score,
-                    llm_result.consistency,
-                )
+            await ws_manager.send_result(
+                task_id,
+                clip_score,
+                clip_interpretation,
+                overall_score,
+                llm_result.overall_score,
+                llm_result.consistency,
+            )
 
-                logger.info(
-                    f"Task {task_id} completed: overall_score={overall_score}",
-                    extra={"task_id": task_id}
-                )
+            logger.info(
+                f"Task {task_id} completed: overall_score={overall_score}",
+                extra={"task_id": task_id},
+            )
 
-            except Exception as e:
-                logger.error(f"Task {task_id} failed: {e}", extra={"task_id": task_id})
+        except Exception as e:
+            logger.error(f"Task {task_id} failed: {e}", extra={"task_id": task_id})
+            async with AsyncSessionLocal() as db:
+                repo = TaskRepository(db)
                 await self._update_status(
-                    repository,
-                    task_id,
-                    TaskStatus.FAILED,
-                    None,
+                    repo, task_id, TaskStatus.FAILED, None,
                 )
-                await ws_manager.send_error(
-                    task_id,
-                    "EVALUATION_FAILED",
-                    str(e),
-                )
-
-            await db.commit()
+            await ws_manager.send_error(
+                task_id, "EVALUATION_FAILED", str(e),
+            )
 
     def _get_image_source(self, job: TaskJob) -> str:
         """Get image source from job, checking url, base64, or hash_id."""
@@ -197,8 +190,8 @@ class EvaluationPipeline:
 
     def _calculate_overall_score(self, clip_score: float, llm_score: float) -> float:
         """Calculate overall score from CLIP and LLM scores."""
-        clip_weight = 0.4
-        llm_weight = 0.6
+        clip_weight = 0.2
+        llm_weight = 0.8
         return round((clip_score * 100 * clip_weight) + (llm_score * llm_weight), 2)
 
     async def _update_status(
@@ -215,6 +208,13 @@ class EvaluationPipeline:
 
         progress_data = progress.model_dump() if progress else None
         await ws_manager.send_status(task_id, status.value, progress_data)
+
+        # SSE broadcast for page-level updates
+        await sse_manager.broadcast_task_updated(task_id, status.value)
+        if status == TaskStatus.COMPLETED:
+            result = await repository.get_result_by_task_id(task_id)
+            overall_score = result.overall_score if result else 0.0
+            await sse_manager.broadcast_task_completed(task_id, overall_score)
 
     async def _save_result(
         self,

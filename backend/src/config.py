@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # API
     api_v1_prefix: str = "/api/v1"
 
+    # CORS
+    cors_origins: str = "*"
+
     # ComfyUI
     comfyui_url: str = "http://127.0.0.1:8188"
     comfyui_output_dir: str = r"D:\ComfyUI\output"

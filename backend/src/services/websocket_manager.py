@@ -87,14 +87,16 @@ class ConnectionManager:
         clip_score: float,
         clip_interpretation: str,
         overall_score: float,
-        llm_consistency: str,
+        llm_score: float,
+        llm_description: str,
     ) -> None:
         """Send evaluation result to all connections for a task."""
         data = {
             "clip_score": clip_score,
             "clip_interpretation": clip_interpretation,
             "overall_score": overall_score,
-            "llm_consistency": llm_consistency,
+            "llm_score": llm_score,
+            "llm_description": llm_description,
         }
         await self.send_message(task_id, "result", data)
 

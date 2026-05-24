@@ -22,6 +22,7 @@ import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table';
 
 import { apiClient } from '../api/client';
+import { useSSE, SSEEvent } from '../hooks/useSSE';
 import type { TaskListItem, TaskStatus, TaskListResponse } from '../types';
 
 const { Title, Text } = Typography;
@@ -81,6 +82,16 @@ export default function HistoryListPage() {
     loadTasks();
   }, [loadTasks]);
 
+  // SSE: auto-refresh list when any task completes or updates
+  const handleSSEEvent = useCallback((event: SSEEvent) => {
+    // Reload the task list when any task status changes
+    loadTasks();
+  }, [loadTasks]);
+
+  // Listen for both task_completed and task_updated events
+  useSSE('task_completed', handleSSEEvent);
+  useSSE('task_updated', handleSSEEvent);
+
   const handleSearch = () => {
     setPage(1);
     loadTasks();
@@ -125,7 +136,7 @@ export default function HistoryListPage() {
       title: '综合评分',
       dataIndex: 'overall_score',
       key: 'overall_score',
-      width: 100,
+      width: 90,
       render: (score: number | undefined) =>
         score !== undefined && score !== null ? (
           <Tag color={score >= 70 ? 'green' : score >= 50 ? 'orange' : 'red'}>
@@ -135,6 +146,36 @@ export default function HistoryListPage() {
           <Text type="secondary">-</Text>
         ),
       sorter: (a, b) => (a.overall_score || 0) - (b.overall_score || 0),
+    },
+    {
+      title: 'CLIP',
+      dataIndex: 'clip_score',
+      key: 'clip_score',
+      width: 80,
+      render: (score: number | undefined) =>
+        score !== undefined && score !== null ? (
+          <Tag color={score >= 0.8 ? 'green' : score >= 0.5 ? 'orange' : 'red'}>
+            {score.toFixed(2)}
+          </Tag>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
+      sorter: (a, b) => (a.clip_score || 0) - (b.clip_score || 0),
+    },
+    {
+      title: 'LLM',
+      dataIndex: 'llm_score',
+      key: 'llm_score',
+      width: 80,
+      render: (score: number | undefined) =>
+        score !== undefined && score !== null ? (
+          <Tag color={score >= 70 ? 'green' : score >= 50 ? 'orange' : 'red'}>
+            {score.toFixed(1)}
+          </Tag>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
+      sorter: (a, b) => (a.llm_score || 0) - (b.llm_score || 0),
     },
     {
       title: '创建时间',

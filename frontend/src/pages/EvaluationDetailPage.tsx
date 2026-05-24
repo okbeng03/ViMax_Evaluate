@@ -5,7 +5,7 @@
  * Displays: task info, image, prompt, CLIP score, LLM analysis, processing details
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -36,6 +36,7 @@ import {
 
 import { apiClient } from '../api/client';
 import { wsClient } from '../api/websocket';
+import { useSSE, SSEEvent } from '../hooks/useSSE';
 import type {
   TaskStatusResponse,
   EvaluationResultResponse,
@@ -150,8 +151,8 @@ export default function EvaluationDetailPage() {
               clip_score: res.clip_score,
               clip_interpretation: res.clip_interpretation,
               structured_description: '',
-              llm_analysis: '',
-              llm_consistency: res.llm_consistency,
+              llm_analysis: res.llm_description,
+              llm_consistency: '',
               overall_score: res.overall_score,
               processing_time_ms: 0,
               created_at: new Date().toISOString(),
@@ -166,6 +167,23 @@ export default function EvaluationDetailPage() {
 
     return () => { unsubStatus(); unsubResult(); unsubError(); };
   };
+
+  // SSE: auto-refresh detail when matching task_id event arrives
+  const handleSSEEvent = useCallback((event: SSEEvent) => {
+    // Only refresh if the event's task_id matches the current page's taskId
+    if (event.data.task_id === taskId) {
+      if (event.type === 'task_completed') {
+        message.success('评估完成！');
+        loadResult();
+      }
+      loadTaskStatus();
+    }
+  }, [taskId]);
+
+  // Enabled only when taskId is available
+  const sseEnabled = !!taskId;
+  useSSE('task_completed', handleSSEEvent, sseEnabled);
+  useSSE('task_updated', handleSSEEvent, sseEnabled);
 
   if (loading) {
     return (
@@ -333,19 +351,13 @@ export default function EvaluationDetailPage() {
               </Divider>
             </Col>
 
-            {/* Score Cards */}
-            <Col xs={24} md={8}>
-              <ScoreCard
-                title="CLIP 语义相似度"
-                score={result.clip_score}
-                maxScore={1}
-                interpretation={result.clip_interpretation}
-              />
-            </Col>
-
-            <Col xs={24} md={8}>
-              <Card title="LLM 综合评分">
-                <div style={{ textAlign: 'center' }}>
+            {/* --- 综合评分 (CLIP 40% + LLM 60%) --- */}
+            <Col span={24}>
+              <Card style={{ textAlign: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 14 }}>
+                  综合评分 (CLIP 40% + LLM 60%)
+                </Text>
+                <div style={{ margin: '12px 0' }}>
                   <Statistic
                     value={result.overall_score}
                     suffix="分"
@@ -353,23 +365,27 @@ export default function EvaluationDetailPage() {
                       color:
                         result.overall_score >= 70 ? '#52c41a' :
                         result.overall_score >= 50 ? '#faad14' : '#ff4d4f',
-                      fontSize: 36,
+                      fontSize: 56,
+                      fontWeight: 700,
                     }}
                   />
-                  <Progress
-                    percent={result.overall_score}
-                    strokeColor={
-                      result.overall_score >= 70 ? '#52c41a' :
-                      result.overall_score >= 50 ? '#faad14' : '#ff4d4f'
-                    }
-                    showInfo={false}
-                  />
+                </div>
+                <Progress
+                  percent={result.overall_score}
+                  strokeColor={{
+                    '0%': '#ff4d4f',
+                    '50%': '#faad14',
+                    '100%': '#52c41a',
+                  }}
+                  size={['100%', 10]}
+                />
+                <div style={{ marginTop: 8 }}>
                   <Tag
                     color={
                       result.llm_consistency === 'consistent' ? 'green' :
                       result.llm_consistency === 'partially_consistent' ? 'orange' : 'red'
                     }
-                    style={{ marginTop: 8, fontSize: 14 }}
+                    style={{ fontSize: 14 }}
                   >
                     {result.llm_consistency === 'consistent' && <CheckCircleOutlined />}
                     {result.llm_consistency === 'partially_consistent' && <WarningOutlined />}
@@ -378,32 +394,105 @@ export default function EvaluationDetailPage() {
                     {result.llm_consistency === 'consistent' ? '内容一致' :
                      result.llm_consistency === 'partially_consistent' ? '部分一致' : '不一致'}
                   </Tag>
+                  {result.processing_time_ms != null && result.processing_time_ms > 0 && (
+                    <Text type="secondary" style={{ marginLeft: 16 }}>
+                      <ClockCircleOutlined /> 耗时 {(result.processing_time_ms / 1000).toFixed(2)} 秒
+                    </Text>
+                  )}
                 </div>
               </Card>
             </Col>
 
-            <Col xs={24} md={8}>
-              <Card title="评估阶段耗时">
+            {/* --- CLIP 评分 + LLM 原始评分 --- */}
+            <Col xs={24} md={12}>
+              <ScoreCard
+                title="CLIP 语义相似度"
+                score={result.clip_score}
+                maxScore={1}
+                interpretation={result.clip_interpretation}
+              />
+            </Col>
+
+            <Col xs={24} md={12}>
+              <Card title={<><RobotOutlined /> LLM 原始评分</>}>
                 <div style={{ textAlign: 'center' }}>
-                  <Statistic
-                    value={result.processing_time_ms ? (result.processing_time_ms / 1000).toFixed(2) : '--'}
-                    suffix="秒"
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ fontSize: 36, color: '#1677ff' }}
-                  />
-                  <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                    评估完成时间: {new Date(result.created_at).toLocaleString('zh-CN')}
-                  </Text>
+                  {result.llm_overall_score != null ? (
+                    <>
+                      <Statistic
+                        value={result.llm_overall_score}
+                        suffix="分"
+                        valueStyle={{
+                          color:
+                            result.llm_overall_score >= 70 ? '#52c41a' :
+                            result.llm_overall_score >= 50 ? '#faad14' : '#ff4d4f',
+                          fontSize: 40,
+                        }}
+                      />
+                      <Progress
+                        percent={result.llm_overall_score}
+                        strokeColor={
+                          result.llm_overall_score >= 70 ? '#52c41a' :
+                          result.llm_overall_score >= 50 ? '#faad14' : '#ff4d4f'
+                        }
+                        showInfo={false}
+                      />
+                    </>
+                  ) : (
+                    <Text type="secondary">暂无</Text>
+                  )}
                 </div>
               </Card>
             </Col>
 
-            {/* Analysis Detail */}
+            {/* --- LLM 维度评分 --- */}
+            {result.llm_dimension_scores && (
+              <Col span={24}>
+                <Card title={<><ExperimentOutlined /> LLM 维度评分</>}>
+                  <Row gutter={[12, 12]}>
+                    {([
+                      ['subject_consistency', '主体一致性', result.llm_dimension_scores.subject_consistency],
+                      ['action_consistency', '动作一致性', result.llm_dimension_scores.action_consistency],
+                      ['attribute_consistency', '属性一致性', result.llm_dimension_scores.attribute_consistency],
+                      ['spatial_consistency', '空间一致性', result.llm_dimension_scores.spatial_consistency],
+                      ['composition_consistency', '构图一致性', result.llm_dimension_scores.composition_consistency],
+                      ['lighting_consistency', '光影一致性', result.llm_dimension_scores.lighting_consistency],
+                      ['style_consistency', '风格一致性', result.llm_dimension_scores.style_consistency],
+                      ['anatomy_quality', '解剖质量', result.llm_dimension_scores.anatomy_quality],
+                      ['artifact_quality', '生成质量', result.llm_dimension_scores.artifact_quality],
+                    ] as [string, string, number][]).map(([key, label, score]) => (
+                      <Col xs={24} sm={12} md={8} key={key}>
+                        <div style={{ marginBottom: 4 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <Text style={{ fontSize: 13 }}>{label}</Text>
+                            <Text strong style={{ fontSize: 13, color: score >= 70 ? '#52c41a' : score >= 50 ? '#faad14' : '#ff4d4f' }}>
+                              {score.toFixed(0)}
+                            </Text>
+                          </div>
+                          <Progress
+                            percent={score}
+                            strokeColor={score >= 70 ? '#52c41a' : score >= 50 ? '#faad14' : '#ff4d4f'}
+                            size="small"
+                            showInfo={false}
+                          />
+                        </div>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              </Col>
+            )}
+
+            {/* --- 需求分析详情 --- */}
             <Col span={24}>
               <AnalysisPanel
                 structuredDescription={result.structured_description}
                 llmAnalysis={result.llm_analysis}
                 llmConsistency={result.llm_consistency}
+                matchedRequirements={result.llm_matched_requirements}
+                missingRequirements={result.llm_missing_requirements}
+                incorrectRequirements={result.llm_incorrect_requirements}
+                extraElements={result.llm_extra_elements}
+                criticalFailures={result.llm_critical_failures}
               />
             </Col>
           </>

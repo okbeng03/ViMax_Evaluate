@@ -9,9 +9,10 @@ from src.config import settings
 from src.db.database import init_db, close_db
 from src.utils.logger import setup_logging, logger
 from src.utils.exceptions import AppException
-from src.routers import tasks, projects, websocket, health
+from src.routers import tasks, projects, websocket, sse, health
 from src.services.task_queue import task_queue
 from src.services.evaluation_pipeline import evaluation_pipeline
+from src.services.sse_manager import sse_manager
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     yield
     
     logger.info("Shutting down...")
+    await sse_manager.shutdown()
     await task_queue.stop()
     await close_db()
     logger.info("Database connections closed")
@@ -44,7 +46,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +54,7 @@ app.add_middleware(
 
 app.include_router(tasks.router, prefix=settings.api_v1_prefix)
 app.include_router(projects.router, prefix=settings.api_v1_prefix)
+app.include_router(sse.router, prefix=settings.api_v1_prefix)
 app.include_router(websocket.router)
 app.include_router(health.router)
 

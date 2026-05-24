@@ -73,7 +73,8 @@ class TestWebSocketManager:
             clip_score=0.85,
             clip_interpretation="consistent",
             overall_score=82.0,
-            llm_consistency="consistent",
+            llm_score=78.0,
+            llm_description="consistent",
         )
         
         mock_websocket.send_text.assert_called_once()

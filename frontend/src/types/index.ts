@@ -73,6 +73,8 @@ export interface TaskListItem {
   project_id?: string;
   prompt_summary: string;
   overall_score?: number;
+  clip_score?: number;
+  llm_score?: number;
   created_at: string;
 }
 
@@ -82,6 +84,27 @@ export interface TaskListResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+/** LLM 维度评分 */
+export interface DimensionScore {
+  subject_consistency: number;
+  action_consistency: number;
+  attribute_consistency: number;
+  spatial_consistency: number;
+  composition_consistency: number;
+  lighting_consistency: number;
+  style_consistency: number;
+  anatomy_quality: number;
+  artifact_quality: number;
+}
+
+/** LLM 需求匹配项 */
+export interface RequirementMatch {
+  item: string;
+  status: 'matched' | 'missing' | 'incorrect';
+  confidence?: number;
+  evidence?: string;
 }
 
 /** Evaluation result response */
@@ -97,6 +120,14 @@ export interface EvaluationResultResponse {
   overall_score: number;
   processing_time_ms: number;
   created_at: string;
+  // LLM 扩展字段
+  llm_overall_score?: number;
+  llm_dimension_scores?: DimensionScore;
+  llm_matched_requirements?: RequirementMatch[];
+  llm_missing_requirements?: RequirementMatch[];
+  llm_incorrect_requirements?: RequirementMatch[];
+  llm_extra_elements?: string[];
+  llm_critical_failures?: string[];
 }
 
 /** WebSocket message types */
@@ -121,7 +152,8 @@ export interface WSResultData {
   clip_score: number;
   clip_interpretation: string;
   overall_score: number;
-  llm_consistency: string;
+  llm_score: number;
+  llm_description: string;
 }
 
 /** WebSocket error data */

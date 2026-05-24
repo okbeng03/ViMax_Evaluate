@@ -1,5 +1,5 @@
 """API routers package."""
 
-from src.routers import tasks, projects, websocket, health
+from src.routers import tasks, projects, websocket, sse, health
 
-__all__ = ["tasks", "projects", "websocket", "health"]
+__all__ = ["tasks", "projects", "websocket", "sse", "health"]
